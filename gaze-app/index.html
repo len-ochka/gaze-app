@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#080c14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Gaze — Системы видеонаблюдения</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/profile.css">
+  <link rel="stylesheet" href="css/constructor.css">
+  <link rel="stylesheet" href="css/cart.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+  <div class="app-wrapper">
+
+    <!-- ===== AUTH SCREEN ===== -->
+    <div class="screen auth-screen" id="screen-auth">
+      <div class="auth-bg">
+        <div class="auth-bg-orb auth-bg-orb-1"></div>
+        <div class="auth-bg-orb auth-bg-orb-2"></div>
+      </div>
+      <div class="auth-content">
+        <div class="auth-hero">
+          <div class="auth-logo-wrap">
+            <svg class="auth-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+            <h2>GAZE</h2>
+          </div>
+          <p>Интеллектуальный подбор и конфигурация комплексных систем безопасности</p>
+        </div>
+
+        <div class="auth-box">
+          <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login">Вход</button>
+            <button class="auth-tab" data-tab="register">Регистрация</button>
+          </div>
+
+          <div class="form-panel active" id="panel-login">
+            <div class="input-group">
+              <label>Email</label>
+              <input type="email" id="login-email" placeholder="example@domain.com" autocomplete="email">
+            </div>
+            <div class="input-group">
+              <label>Пароль</label>
+              <div class="password-input-wrap">
+                <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+                <button class="password-toggle" type="button" aria-label="Показать пароль">
+                  <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btn-login">Войти в аккаунт</button>
+          </div>
+
+          <div class="form-panel" id="panel-register">
+            <div class="input-group">
+              <label>Имя</label>
+              <input type="text" id="reg-name" placeholder="Александр" autocomplete="name">
+            </div>
+            <div class="input-group">
+              <label>Email</label>
+              <input type="email" id="reg-email" placeholder="example@domain.com" autocomplete="email">
+            </div>
+            <div class="input-group">
+              <label>Пароль</label>
+              <div class="password-input-wrap">
+                <input type="password" id="reg-pass" placeholder="Минимум 6 символов" autocomplete="new-password">
+                <button class="password-toggle" type="button" aria-label="Показать пароль">
+                  <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btn-register">Создать аккаунт</button>
+          </div>
+        </div>
+
+        <div class="auth-footer">
+          <p>Защищено сквозным шифрованием GAZE Cloud.<br>Авторизуясь, вы принимаете условия оферты.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== HOME SCREEN ===== -->
+    <div class="screen home-screen" id="screen-home">
+      <div class="home-header">
+        <div class="header-user">
+          <span class="greeting">Привет,</span>
+          <h1 id="home-username">Пользователь</h1>
+        </div>
+        <button class="header-cart-btn" id="home-cart-btn" aria-label="Корзина">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span class="cart-badge" id="home-cart-count" style="display:none;">0</span>
+        </button>
+      </div>
+
+      <div class="home-scroll">
+        <div class="promo-card" id="promo-to-constructor">
+          <div class="promo-content">
+            <span class="promo-tag">Рекомендуем</span>
+            <h3>Мастер подбора оборудования</h3>
+            <p>Сконфигурируйте систему за 3 простых шага с полной проверкой совместимости</p>
+            <button class="btn-promo">Запустить сборку</button>
+          </div>
+          <div class="promo-bg-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+          </div>
+        </div>
+
+        <div class="section-title">Готовые комплекты оборудования</div>
+        <div class="kits-grid">
+          <div class="kit-card kit-card-btn" data-kit="home-mini">
+            <div class="kit-image-stub" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>
+            </div>
+            <div class="kit-info">
+              <h4>Комплект «Дом Мини»</h4>
+              <p>2 Внутренние камеры + Регистратор + HDD 1ТБ</p>
+              <div class="kit-footer">
+                <span class="kit-price">14 900 ₽</span>
+                <button class="kit-add-btn">Выбрать</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="kit-card kit-card-btn" data-kit="business">
+            <div class="kit-image-stub" style="background: linear-gradient(135deg, #1e293b, #0f172a);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            </div>
+            <div class="kit-info">
+              <h4>Комплект «Бизнес Оптима»</h4>
+              <p>4 Уличные камеры 4К + PoE-коммутатор + Регистратор</p>
+              <div class="kit-footer">
+                <span class="kit-price">32 400 ₽</span>
+                <button class="kit-add-btn">Выбрать</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CONSTRUCTOR SCREEN ===== -->
+    <div class="screen constructor-screen" id="screen-constructor">
+      <div class="screen-header">
+        <h2>Конструктор системы</h2>
+        <button class="icon-btn" id="btn-restart" title="Сбросить сборку">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
+        </button>
+      </div>
+
+      <div class="step-progress">
+        <div class="step-dot active" id="dot-1"><div class="step-dot-circle">1</div><span>Тип</span></div>
+        <div class="step-dot" id="dot-2"><div class="step-dot-circle">2</div><span>Опции</span></div>
+        <div class="step-dot" id="dot-3"><div class="step-dot-circle">3</div><span>Итог</span></div>
+      </div>
+
+      <div class="constructor-main" id="constructor-scroll">
+        <!-- Step 1 -->
+        <div class="constructor-step active" id="constructor-step-1">
+          <div class="step-title">Где будут установлены камеры?</div>
+          <div class="camera-types">
+            <div class="camera-type-card" data-type="outdoor">
+              <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              </div>
+              <div class="card-title">На улице (Outdoor)</div>
+              <div class="card-desc">Защита IP67 от влаги и пыли, антивандальный корпус, ИК-подсветка до 40м.</div>
+            </div>
+            <div class="camera-type-card" data-type="indoor">
+              <div class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+              </div>
+              <div class="card-title">В помещении (Indoor)</div>
+              <div class="card-desc">Компактный купольный дизайн, встроенный датчик, широкий угол обзора 104°.</div>
+            </div>
+          </div>
+
+          <div class="step-title" style="margin-top:32px;">Количество точек наблюдения</div>
+          <div class="qty-selector-wrap">
+            <div class="qty-selector">
+              <button class="qty-btn" id="qty-minus">−</button>
+              <span class="qty-value" id="camera-count-display">1</span>
+              <button class="qty-btn" id="qty-plus">+</button>
+            </div>
+            <div class="qty-hints">
+              <span class="qty-hint" data-val="2">2 камеры</span>
+              <span class="qty-hint" data-val="4">4 камеры</span>
+              <span class="qty-hint" data-val="8">8 камер</span>
+              <span class="qty-hint" data-val="16">16 камер</span>
+            </div>
+          </div>
+
+          <div class="step-footer-actions">
+            <button class="btn btn-primary" id="btn-step1-next">Продолжить</button>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="constructor-step" id="constructor-step-2">
+          <div class="step-title">Дополнительные требования</div>
+          <div class="options-list">
+            <div class="checkbox-row option-checkbox" data-option="soundRecord">
+              <div class="custom-checkbox">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="checkbox-body">
+                <div class="checkbox-title">Запись звукового потока</div>
+                <div class="checkbox-desc">Активные микрофоны с шумоподавлением для контроля аудио.</div>
+              </div>
+            </div>
+            <div class="checkbox-row option-checkbox" data-option="motionDetect">
+              <div class="custom-checkbox">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="checkbox-body">
+                <div class="checkbox-title">Детекция движения и AI-аналитика</div>
+                <div class="checkbox-desc">Распознавание людей и авто, push-нотификации при пересечении периметра.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-footer-actions dual">
+            <button class="btn btn-secondary" id="btn-step2-back">Назад</button>
+            <button class="btn btn-primary" id="btn-step2-next">Сформировать спецификацию</button>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="constructor-step" id="constructor-step-3">
+          <div class="step-title">Совместимая спецификация оборудования</div>
+          <div class="compat-results-list" id="compat-results"></div>
+          <div class="total-card" id="compat-total"></div>
+          <div class="step-footer-actions dual">
+            <button class="btn btn-secondary" id="btn-step3-back">Назад</button>
+            <button class="btn btn-accent" id="btn-step3-add">Добавить комплект в корзину</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CART SCREEN ===== -->
+    <div class="screen cart-screen" id="screen-cart">
+      <div class="screen-header">
+        <h2>Корзина</h2>
+      </div>
+
+      <div class="cart-empty" id="cart-empty">
+        <div class="empty-state" style="text-align:center; padding: 40px 20px;">
+          <div style="width:64px;height:64px;border-radius:50%;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);display:flex;align-items:center;justify-content:center;color:var(--accent);margin:0 auto 20px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          </div>
+          <h3 style="font-family:var(--font-display);font-size:18px;font-weight:700;margin-bottom:8px;">Корзина пуста</h3>
+          <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;max-width:260px;margin:0 auto 20px;">Воспользуйтесь конструктором для сборки персональной системы видеонаблюдения.</p>
+          <button class="btn btn-primary" id="btn-go-constructor" style="width:auto;padding:12px 24px;">Перейти в конструктор</button>
+        </div>
+      </div>
+
+      <div class="cart-content-wrapper" id="cart-content" style="display:none;">
+        <div class="cart-scroll-area">
+          <div class="cart-items" id="cart-items"></div>
+
+          <div class="section-title" style="margin-top: 24px; margin-bottom: 12px;">Способ получения</div>
+          <div class="delivery-options">
+            <div class="delivery-option selected" data-type="courier">
+              <div class="delivery-radio"></div>
+              <div class="delivery-info">
+                <div class="delivery-name">Курьерская доставка GAZE</div>
+                <div class="delivery-note">Доставка до двери, бережная транспортировка</div>
+              </div>
+              <div class="delivery-price">500 ₽</div>
+            </div>
+            <div class="delivery-option" data-type="pickup">
+              <div class="delivery-radio"></div>
+              <div class="delivery-info">
+                <div class="delivery-name">Самовывоз из центра</div>
+                <div class="delivery-note">Москва, Бережковская наб., д. 20А</div>
+              </div>
+              <div class="delivery-price">Бесплатно</div>
+            </div>
+          </div>
+
+          <div class="cart-summary-card">
+            <div class="summary-row"><span>Стоимость оборудования</span><span id="cart-subtotal">0 ₽</span></div>
+            <div class="summary-row"><span>Доставка</span><span id="cart-delivery-cost">0 ₽</span></div>
+            <div class="summary-row final"><span>Итого к оплате</span><span id="cart-total">0 ₽</span></div>
+          </div>
+        </div>
+
+        <div class="cart-footer-actions">
+          <button class="btn btn-primary" id="btn-checkout">Оформить заказ</button>
+        </div>
+      </div>
+
+      <div class="order-success" id="order-success">
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3>Заказ успешно сформирован!</h3>
+        <p>Спецификация направлена менеджеру. Мы свяжемся с вами в Telegram в течение 10 минут.</p>
+        <div class="order-number-badge" id="order-id-display">#000000</div>
+        <button class="btn btn-secondary" id="btn-new-order" style="margin-top: 12px; width: 100%;">Собрать новую систему</button>
+      </div>
+    </div>
+
+    <!-- ===== PROFILE SCREEN ===== -->
+    <div class="screen profile-screen" id="screen-profile">
+      <div class="profile-view-wrap" id="profile-main-view">
+        <div class="profile-hero">
+          <div class="profile-avatar">
+            <span id="profile-initials">U</span>
+            <div class="profile-avatar-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+          </div>
+          <h3 class="profile-name" id="profile-display-name">Загрузка...</h3>
+          <p class="profile-email" id="profile-display-email">...</p>
+        </div>
+
+        <div class="profile-stats">
+          <div class="stat-card">
+            <div class="stat-num" id="profile-stat-orders">0</div>
+            <div class="stat-label">Заказов отправлено</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" style="color:var(--accent-2);">Active</div>
+            <div class="stat-label">Статус интеграции</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-bottom: 12px;">Персональные данные</div>
+        <div class="profile-menu">
+          <div class="profile-row" id="btn-edit-profile">
+            <div class="profile-row-content">
+              <span class="profile-row-label">ФИО Клиента</span>
+              <span class="profile-row-value" id="profile-row-name">—</span>
+            </div>
+            <div class="profile-row-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-row-content">
+              <span class="profile-row-label">Контактный Email</span>
+              <span class="profile-row-value" id="profile-row-email">—</span>
+            </div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-row-content">
+              <span class="profile-row-label">Номер телефона</span>
+              <span class="profile-row-value placeholder" id="profile-row-phone">Не указан</span>
+            </div>
+          </div>
+          <div class="profile-row">
+            <div class="profile-row-content">
+              <span class="profile-row-label">Адрес доставки</span>
+              <span class="profile-row-value placeholder" id="profile-row-address">Не указан</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="logout-btn" id="btn-logout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Выйти из учетной записи</span>
+        </button>
+      </div>
+
+      <div class="profile-view-wrap" id="profile-edit-view" style="display:none; padding: 0;">
+        <div class="edit-header">
+          <button class="back-btn" id="btn-edit-back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h3 class="edit-title">Редактирование</h3>
+        </div>
+        <div class="profile-edit-form" style="margin-top:20px; flex: 1;">
+          <div class="input-group">
+            <label>ФИО</label>
+            <input type="text" id="edit-name" autocomplete="name">
+          </div>
+          <div class="input-group">
+            <label>Телефон</label>
+            <input type="tel" id="edit-phone" placeholder="+7 (999) 000-00-00" autocomplete="tel">
+          </div>
+          <div class="input-group">
+            <label>Адрес</label>
+            <input type="text" id="edit-address" placeholder="Город, улица, дом, квартира">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-save-profile" style="margin-top: 24px;">Сохранить изменения</button>
+      </div>
+    </div>
+
+    <!-- ===== BOTTOM NAV ===== -->
+    <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+      <button class="nav-item" data-screen="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span>Главная</span>
+      </button>
+      <button class="nav-item" data-screen="constructor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+        </svg>
+        <span>Подбор</span>
+      </button>
+      <button class="nav-item" data-screen="cart">
+        <div class="nav-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          <span class="cart-badge" id="nav-cart-badge" style="display:none;">0</span>
+        </div>
+        <span>Корзина</span>
+      </button>
+      <button class="nav-item" data-screen="profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>Профиль</span>
+      </button>
+    </nav>
+
+  </div><!-- end app-wrapper -->
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Scripts — порядок важен! -->
+  <script src="js/storage.js"></script>
+  <script src="js/telegram.js"></script>
+  <script src="js/cart_store.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
