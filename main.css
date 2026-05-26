@@ -456,6 +456,48 @@ body {
   background: var(--accent-dim);
 }
 
+/* Landing Screen */
+.landing-screen {
+  background: radial-gradient(circle at 50% 0%, #1a2a4a 0%, #080c14 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+
+.landing-hero h1 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  margin: 24px 0 16px;
+  line-height: 1.2;
+}
+
+.landing-hero p {
+  color: var(--text-secondary);
+  font-size: 16px;
+  margin-bottom: 32px;
+}
+
+.landing-sections {
+  margin-top: 60px;
+  text-align: left;
+}
+
+.landing-sections h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: var(--accent);
+}
+
+.landing-sections p {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
 /* Toast Component */
 .toast {
   position: fixed;

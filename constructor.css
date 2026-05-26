@@ -284,6 +284,37 @@
   margin-bottom: 20px;
 }
 
+/* Package Visualizations & Animations */
+.pkg-card {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+}
+
+.pkg-card.selected {
+  transform: scale(1.02) translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+  animation: border-glow 2s infinite;
+}
+
+@keyframes border-glow {
+  0% { box-shadow: 0 0 5px rgba(0,212,255,0.2); }
+  50% { box-shadow: 0 0 15px rgba(0,212,255,0.5); }
+  100% { box-shadow: 0 0 5px rgba(0,212,255,0.2); }
+}
+
+.kit-card:hover {
+  transform: translateY(-5px);
+}
+
+.kit-image-stub svg {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .compat-card {
   background: rgba(255,255,255,0.02);
   border: 1px solid var(--glass-border);

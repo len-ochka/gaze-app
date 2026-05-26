@@ -95,6 +95,10 @@ const TelegramService = (() => {
     }
   }
 
+  function getInitData() {
+    return tg?.initData || '';
+  }
+
   function close() {
     tg?.close();
   }
@@ -108,6 +112,7 @@ const TelegramService = (() => {
     BackButton,
     Haptic,
     sendData,
+    getInitData,
     close
   };
 })();
