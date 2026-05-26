@@ -11,6 +11,21 @@ app.use(express.json());
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
+async function sendTelegramMessage(chatId, text) {
+  try {
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+    });
+    return response.ok;
+  } catch (err) {
+    console.error('Failed to send TG message:', err);
+    return false;
+  }
+}
+
 // --- SMTP FALLBACK CONFIG ---
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.ethereal.email',
@@ -88,19 +103,25 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
   const { id, username, first_name, last_name } = req.tgUser;
   const fullName = [first_name, last_name].filter(Boolean).join(' ');
 
-  db.get('SELECT * FROM users WHERE tg_id = ?', [id], (err, user) => {
+  db.get('SELECT u.*, (SELECT COUNT(*) FROM orders WHERE user_id = u.id) as order_count FROM users u WHERE u.tg_id = ?', [id], (err, user) => {
     if (err) return res.status(500).json({ error: err.message });
 
     if (!user) {
-      db.run('INSERT INTO users (tg_id, username, full_name) VALUES (?, ?, ?)',
-        [id, username, fullName],
-        function(err) {
-          if (err) return res.status(500).json({ error: err.message });
-          db.get('SELECT * FROM users WHERE id = ?', [this.lastID], (err, newUser) => {
-            res.json(newUser);
-          });
-        }
-      );
+      // Check if this is the first user
+      db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
+        const isFirst = !err && row.count === 0;
+        const role = isFirst ? 'admin' : 'user';
+
+        db.run('INSERT INTO users (tg_id, username, full_name, role) VALUES (?, ?, ?, ?)',
+          [id, username, fullName, role],
+          function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            db.get('SELECT * FROM users WHERE id = ?', [this.lastID], (err, newUser) => {
+              res.json(newUser);
+            });
+          }
+        );
+      });
     } else {
       if (user.is_blocked) return res.status(403).json({ error: 'User is blocked', reason: user.block_reason });
       res.json(user);
@@ -147,7 +168,21 @@ app.post('/api/orders', authMiddleware, (req, res) => {
           await sendEmailFallback(req.body, user);
           return res.status(500).json({ error: 'Order failed but fallback email sent' });
         }
-        res.json({ success: true, orderId: id });
+
+        // Notification text
+        const text = `🚀 <b>Новая заявка #${id}</b>\n\nКлиент: ${user.full_name}\nОбъект: ${area}м², ${camera_type}\nПакет: ${package_id}\nСумма: ${total_price} ₽`;
+
+        // Notify user via Bot
+        const notified = await sendTelegramMessage(user.tg_id, text);
+
+        // Notify admin via Bot (if different from user)
+        db.get('SELECT tg_id FROM users WHERE role = "admin" LIMIT 1', async (err, admin) => {
+          if (admin && admin.tg_id !== user.tg_id) {
+            await sendTelegramMessage(admin.tg_id, `ADMIN NOTIFY: ${text}`);
+          }
+        });
+
+        res.json({ success: true, orderId: id, notified });
       }
     );
   });
@@ -216,4 +251,4 @@ app.post('/api/chat', authMiddleware, (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));

@@ -192,7 +192,12 @@ function buildSpec(pkg, area, camType, opts) {
   const installTotal = PRICES[pkg.install] * camCount;
 
   const equipment = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal;
-  const total = equipment + installTotal;
+  let total = equipment + installTotal;
+
+  // VIP Discount: 5% off if 3+ orders
+  if (state.orderCount >= 3) {
+    total = Math.round(total * 0.95);
+  }
 
   const chCount = camCount <= 4 ? '4-канальный' : camCount <= 8 ? '8-канальный' : '16-канальный';
 
@@ -616,7 +621,7 @@ function buildAndShowResult() {
       <div class="total-row"><span class="total-label">🔧 Монтаж</span><span class="total-value">${fmt(spec.installTotal)}</span></div>
       <div class="total-row total-final">
         <span class="total-label">💰 ИТОГО</span>
-        <span class="total-value">${fmt(spec.total)}</span>
+        <span class="total-value">${fmt(spec.total)}${state.orderCount >= 3 ? ' <span style="font-size:12px;color:var(--accent);">(VIP -5%)</span>' : ''}</span>
       </div>`;
   }
 }
