@@ -1,12 +1,5 @@
 'use strict';
 
-// ─── КОНФИГУРАЦИЯ БОТА ────────────────────────────────────────────────────────
-const BOT_TOKEN = '8803611894:AAG7qg9at-il3Ra7EEhoy3df5Yp0kuOQaJQ';
-const ADMIN_CHAT = '@neznnezn';
-// Числовой chat_id администратора — получим при первом запросе через getUpdates
-// Пока используем username, бот сам найдёт id после первого сообщения
-let ADMIN_CHAT_ID = null;
-
 // ─── ПРАЙС-ЛИСТ ───────────────────────────────────────────────────────────────
 const PRICES = {
   // Камеры
@@ -157,27 +150,19 @@ function clearErr(ids) {
 
 // ─── РАСЧЁТ КАМЕР ПО ПЛОЩАДИ ─────────────────────────────────────────────────
 function calcCamerasForArea(area, type) {
-  // Формулы:
-  // Внутри: 1 камера на ~20м² (угол 104°, высота 2.7м → покрытие ~18-22м²)
-  // Снаружи: 1 камера на ~60м периметра
-  // Смешанный: считаем как внутренние
   let count;
   if (type === 'outdoor') {
-    // Периметр ≈ 4 * sqrt(area) для квадратного объекта
     const perimeter = 4 * Math.sqrt(area);
-    count = Math.ceil(perimeter / 15); // камера перекрывает ~15м
+    count = Math.ceil(perimeter / 15);
   } else {
     count = Math.ceil(area / 20);
   }
-  // Минимум 2, максимум 16
   return Math.min(16, Math.max(2, count));
 }
 
 function calcCableForArea(area, camCount, type) {
-  // Среднее расстояние от камеры до регистратора
-  // = sqrt(площадь) / 2 * 1.3 (запас на трассировку)
   const avgDist = Math.ceil(Math.sqrt(area) / 2 * 1.3);
-  return avgDist * camCount + 10; // +10м запас
+  return avgDist * camCount + 10;
 }
 
 function getDvrKey(pkg, count) {
@@ -224,131 +209,231 @@ function buildSpec(pkg, area, camType, opts) {
   return { items, equipment, installTotal, total, camCount, cableM, pkg };
 }
 
-// ─── ОТПРАВКА В TELEGRAM ─────────────────────────────────────────────────────
-async function sendOrderToTelegram(orderData) {
-  // Сначала получаем chat_id администратора если не знаем
-  if (!ADMIN_CHAT_ID) {
-    try {
-      const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=50`);
-      const d = await r.json();
-      if (d.ok && d.result) {
-        for (const upd of d.result) {
-          const msg = upd.message || upd.channel_post;
-          if (msg && msg.from && msg.chat) {
-            // ищем сообщение от @neznnezn
-            if (msg.from.username === 'neznnezn' || msg.chat.username === 'neznnezn') {
-              ADMIN_CHAT_ID = msg.chat.id;
-              break;
-            }
-          }
-        }
-      }
-    } catch (_) {}
-    // Если не нашли — используем username напрямую (sendMessage поддерживает @username)
-    if (!ADMIN_CHAT_ID) ADMIN_CHAT_ID = ADMIN_CHAT;
+// ─── ОФОРМЛЕНИЕ ЗАКАЗА ────────────────────────────────────────────────────────
+async function doOrder() {
+  if (!state.user) { toast('Войдите в аккаунт', 'error'); return; }
+  if (!state.user.phone) {
+    haptic('error');
+    toast('Укажите телефон в профиле для связи', 'error');
+    setTimeout(() => showScreen('profile'), 1500);
+    return;
   }
 
-  const spec = orderData.spec;
-  const u = orderData.user;
-  const pkg = spec.pkg;
+  const btn = $('btn-calc3-order');
+  setLoading(btn, true);
 
-  const itemLines = spec.items.map(i =>
-    `  ${i.icon} ${i.name} × ${i.qty} — ${fmt(i.price)}`
-  ).join('\n');
+  const orderId = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const orderData = {
+    id: orderId,
+    area: state.calc.area,
+    camera_type: state.calc.cameraType,
+    package_id: state.calc.package,
+    options: { soundRecord: state.calc.soundRecord, motionDetect: state.calc.motionDetect },
+    spec: state.calc.result,
+    total_price: state.calc.result.total
+  };
 
-  const typeLabel = {
-    outdoor: '🏢 Уличные',
-    indoor: '🏠 Внутренние',
-    mixed: '🏗 Смешанные'
-  }[orderData.cameraType] || '';
+  try {
+    await StorageService.submitOrder(orderData);
+    haptic('success');
+    setLoading(btn, false);
+    state.orderCount = StorageService.getOrderCount();
 
-  const text = `
-🔔 *НОВАЯ ЗАЯВКА НА УСТАНОВКУ*
-━━━━━━━━━━━━━━━━━━━━
-📋 *Заказ:* \`#${orderData.id}\`
-🕐 *Время:* ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
+    if (state.orderCount > 0) {
+        $('nav-support').style.display = 'flex';
+    }
 
-👤 *Клиент:*
-  • Имя: ${u.name || '—'}
-  • Телефон: ${u.phone || '—'}
-  • Email: ${u.email || '—'}
-  • Адрес объекта: ${u.address || '—'}
+    // Показываем экран успеха
+    $('order-id-display').textContent = '#' + orderId;
+    $('order-success').classList.add('show');
+    $$('.calc-step').forEach(s => s.classList.remove('active'));
 
-📐 *Параметры объекта:*
-  • Площадь: ${orderData.area} м²
-  • Тип размещения: ${typeLabel}
-  • Расчётное кол-во камер: ${spec.camCount} шт.
-  • Длина трассы: ~${spec.cableM} м
+  } catch (err) {
+    haptic('error');
+    setLoading(btn, false);
+    toast('Ошибка отправки: ' + err.message, 'error');
+    console.error('Order error:', err);
+  }
+}
 
-📦 *Пакет:* ${pkg.name} ${pkg.badge}
+// ─── YANDEX MAPS ──────────────────────────────────────────────────────────────
+let myMap;
+function initMap() {
+  if (!window.ymaps) return;
+  window.ymaps.ready(() => {
+    myMap = new ymaps.Map("map", {
+      center: [55.76, 37.64], // Moscow
+      zoom: 10,
+      controls: ['zoomControl', 'geolocationControl']
+    });
 
-🛒 *Спецификация:*
-${itemLines}
-
-💰 *Стоимость:*
-  • Оборудование: ${fmt(spec.equipment)}
-  • Монтаж: ${fmt(spec.installTotal)}
-  • *Итого: ${fmt(spec.total)}*
-${orderData.opts.soundRecord ? '\n🎤 Запись звука: ✅' : ''}${orderData.opts.motionDetect ? '\n🤖 AI-детекция: ✅' : ''}
-━━━━━━━━━━━━━━━━━━━━
-`.trim();
-
-  const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: ADMIN_CHAT_ID,
-      text,
-      parse_mode: 'Markdown'
-    })
+    myMap.events.add('click', function (e) {
+      const coords = e.get('coords');
+      getAddress(coords);
+    });
   });
-  const result = await resp.json();
-  if (!result.ok) throw new Error(result.description);
-  return true;
+}
+
+function getAddress(coords) {
+  ymaps.geocode(coords).then(function (res) {
+    const firstGeoObject = res.geoObjects.get(0);
+    const address = firstGeoObject.getAddressLine();
+    const addrInput = $('edit-address');
+    if (addrInput) addrInput.value = address;
+  });
+}
+
+// ─── ADMIN ────────────────────────────────────────────────────────────────────
+async function renderAdmin() {
+  if (state.user?.role !== 'admin') {
+    showScreen('home');
+    return;
+  }
+  try {
+    const orders = await StorageService.apiRequest('/admin/orders');
+    const logs = await StorageService.apiRequest('/admin/logs');
+    const prices = await StorageService.getPrices();
+
+    $('admin-prices-list').innerHTML = Object.entries(prices).map(([key, val]) => `
+      <div class="admin-price-row" style="display:flex; justify-content:space-between; margin-bottom:8px; background:var(--bg-card); padding:10px; border-radius:8px;">
+        <span style="font-size:14px;">${key}</span>
+        <input type="number" value="${val}" onchange="updatePrice('${key}', this.value)" style="width:80px; background:transparent; color:white; border:1px solid var(--glass-border); border-radius:4px; text-align:right;">
+      </div>
+    `).join('');
+
+    $('admin-orders-list').innerHTML = orders.map(o => `
+      <div class="admin-order-card" style="background:var(--bg-card); padding:12px; border-radius:12px; margin-bottom:10px; border-left:4px solid ${o.status === 'pending' ? 'var(--accent)' : 'var(--accent-2)'}">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span style="font-weight:bold;">#${o.id}</span>
+          <span style="font-size:12px; color:var(--text-muted);">${new Date(o.created_at).toLocaleDateString()}</span>
+        </div>
+        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${o.full_name || 'Anonymous'} - ${fmt(o.total_price)}</div>
+        <button onclick="blockUser(${o.user_id})" style="font-size:10px; padding:4px 8px; border-radius:4px; background:#ff4d4d; border:none; color:white; cursor:pointer;">Block User</button>
+      </div>
+    `).join('');
+
+    $('admin-logs-list').innerHTML = logs.map(l => `
+      <div class="admin-log-row" style="font-size:12px; color:${l.level === 'error' ? '#ff4d4d' : 'var(--text-secondary)'}; margin-bottom:4px; padding:4px; border-bottom:1px solid var(--glass-border);">
+        [${new Date(l.created_at).toLocaleTimeString()}] ${l.message}
+      </div>
+    `).join('');
+  } catch (e) {
+    toast('Ошибка загрузки админки: ' + e.message, 'error');
+  }
+}
+
+window.updatePrice = async (key, val) => {
+  try {
+    await StorageService.apiRequest('/admin/prices', 'POST', { key, value: parseInt(val) });
+    toast('Цена обновлена', 'success');
+  } catch (e) {
+    toast('Ошибка обновления: ' + e.message, 'error');
+  }
+};
+
+window.blockUser = async (userId) => {
+  const reason = prompt('Reason for blocking?');
+  if (!reason) return;
+  try {
+    await StorageService.apiRequest('/admin/users/block', 'POST', { userId, reason });
+    toast('User blocked', 'success');
+  } catch (e) {
+    toast('Error blocking user: ' + e.message, 'error');
+  }
+};
+
+// ─── SUPPORT ──────────────────────────────────────────────────────────────────
+let supportInterval;
+async function renderSupport() {
+  if (state.orderCount === 0) {
+    $('support-chat-messages').innerHTML = '<div class="chat-msg system" style="text-align:center; color:var(--text-muted);">Чат поддержки станет доступен после вашего первого заказа.</div>';
+    $('support-input').disabled = true;
+    $('btn-send-support').disabled = true;
+    return;
+  }
+
+  $('support-input').disabled = false;
+  $('btn-send-support').disabled = false;
+
+  try {
+    const messages = await StorageService.apiRequest('/chat');
+    $('support-chat-messages').innerHTML = messages.map(m => `
+      <div class="chat-msg ${m.sender}" style="align-self: ${m.sender === 'user' ? 'flex-end' : 'flex-start'}; background: ${m.sender === 'user' ? 'var(--accent)' : 'var(--bg-card)'}; color: ${m.sender === 'user' ? 'var(--bg-primary)' : 'white'}; padding: 8px 12px; border-radius: 12px; max-width: 80%; margin-bottom: 10px;">
+        ${m.text}
+      </div>
+    `).join('');
+    $('support-chat-messages').scrollTo({ top: $('support-chat-messages').scrollHeight });
+  } catch (e) {
+    console.error('Failed to load chat', e);
+  }
+
+  clearInterval(supportInterval);
+  supportInterval = setInterval(async () => {
+    if (state.screen === 'support') {
+      const messages = await StorageService.apiRequest('/chat');
+      const currentCount = $('support-chat-messages').children.length;
+      if (messages.length > currentCount) {
+        renderSupport();
+      }
+    }
+  }, 5000);
+}
+
+function bindSupport() {
+  $('btn-send-support')?.addEventListener('click', async () => {
+    const inp = $('support-input');
+    const msg = inp.value.trim();
+    if (!msg) return;
+    haptic('light');
+    inp.value = '';
+
+    try {
+      await StorageService.apiRequest('/chat', 'POST', { text: msg });
+      renderSupport();
+    } catch (e) {
+      toast('Ошибка отправки: ' + e.message, 'error');
+    }
+  });
 }
 
 // ─── ИНИЦИАЛИЗАЦИЯ ────────────────────────────────────────────────────────────
-function init() {
-  // Загружаем данные
-  try { const u = localStorage.getItem('gaze_user'); if (u) state.user = JSON.parse(u); } catch (_) {}
-  try { const n = localStorage.getItem('gaze_orders'); if (n) state.orderCount = parseInt(n) || 0; } catch (_) {}
-
-  // Telegram WebApp init
+async function init() {
   const tg = window.Telegram?.WebApp;
-  if (tg?.initDataUnsafe?.user) {
-    try { tg.ready(); tg.expand(); } catch (_) {}
-    try { if (tg.setHeaderColor) tg.setHeaderColor('#080c14'); } catch (_) {}
-    try { if (tg.setBackgroundColor) tg.setBackgroundColor('#080c14'); } catch (_) {}
-    const u = tg.initDataUnsafe.user;
-    if (!state.user) {
-      state.user = {
-        name: [u.first_name, u.last_name].filter(Boolean).join(' ') || 'Пользователь',
-        email: `tg_${u.id}@telegram`, phone: '', address: '',
-        tgId: u.id, tgUsername: u.username || null
-      };
-      localStorage.setItem('gaze_user', JSON.stringify(state.user));
-    }
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    if (tg.setHeaderColor) tg.setHeaderColor('#080c14');
+    if (tg.setBackgroundColor) tg.setBackgroundColor('#080c14');
+  }
+
+  // Синхронизация с бэкендом
+  try {
+    state.user = await StorageService.syncUser();
+    state.orderCount = StorageService.getOrderCount();
+
+    // Загрузка актуальных цен
+    const remotePrices = await StorageService.getPrices();
+    Object.assign(PRICES, remotePrices);
+  } catch (e) {
+    console.error('Init sync failed', e);
   }
 
   bindAll();
-  showScreen(state.user ? 'home' : 'auth');
 
-  // Получаем admin chat_id в фоне
-  if (ADMIN_CHAT_ID === null) {
-    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=50`)
-      .then(r => r.json())
-      .then(d => {
-        if (!d.ok) return;
-        for (const upd of d.result || []) {
-          const msg = upd.message;
-          if (msg?.from?.username === 'neznnezn') {
-            ADMIN_CHAT_ID = msg.chat.id;
-            break;
-          }
-        }
-        if (!ADMIN_CHAT_ID) ADMIN_CHAT_ID = ADMIN_CHAT;
-      })
-      .catch(() => { ADMIN_CHAT_ID = ADMIN_CHAT; });
+  if (state.user?.role === 'admin') {
+    const navAdmin = $('nav-admin');
+    if (navAdmin) navAdmin.style.display = 'flex';
+  }
+  if (state.orderCount > 0) {
+    const navSupport = $('nav-support');
+    if (navSupport) navSupport.style.display = 'flex';
+  }
+
+  const hasSeenLanding = localStorage.getItem('gaze_seen_landing');
+  if (!hasSeenLanding) {
+    showScreen('landing');
+  } else {
+    showScreen(state.user ? 'home' : 'auth');
   }
 }
 
@@ -360,13 +445,15 @@ function showScreen(name) {
   state.screen = name;
 
   const nav = $('bottom-nav');
-  if (nav) nav.style.display = name === 'auth' ? 'none' : '';
+  if (nav) nav.style.display = (name === 'auth' || name === 'landing') ? 'none' : '';
 
   $$('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.screen === name));
 
   if (name === 'home') renderHome();
   if (name === 'profile') renderProfile();
   if (name === 'calculator') renderCalcStep(1);
+  if (name === 'admin') renderAdmin();
+  if (name === 'support') renderSupport();
 }
 
 // ─── АВТОРИЗАЦИЯ ──────────────────────────────────────────────────────────────
@@ -393,66 +480,14 @@ function bindAuth() {
     });
   });
 
-  $('btn-login')?.addEventListener('click', doLogin);
-  $('btn-register')?.addEventListener('click', doRegister);
-}
-
-function doLogin() {
-  haptic('medium');
-  const email = $('login-email')?.value.trim();
-  const pass = $('login-pass')?.value;
-  clearErr(['login-email', 'login-pass']);
-  let ok = true;
-  if (!isEmail(email)) { fieldErr('login-email', 'Введите корректный email'); ok = false; }
-  if (pass?.length < 6) { fieldErr('login-pass', 'Минимум 6 символов'); ok = false; }
-  if (!ok) { haptic('error'); return; }
-  const btn = $('btn-login');
-  setLoading(btn, true);
-  setTimeout(() => {
-    setLoading(btn, false);
-    let accounts = {};
-    try { accounts = JSON.parse(localStorage.getItem('gaze_accounts') || '{}'); } catch (_) {}
-    if (!accounts[email] || accounts[email].pass !== btoa(pass)) {
-      haptic('error'); fieldErr('login-email', 'Неверный email или пароль'); return;
-    }
-    haptic('success');
-    state.user = accounts[email].user;
-    localStorage.setItem('gaze_user', JSON.stringify(state.user));
-    showScreen('home'); toast('Добро пожаловать!', 'success');
-  }, 700);
-}
-
-function doRegister() {
-  haptic('medium');
-  const name = $('reg-name')?.value.trim();
-  const email = $('reg-email')?.value.trim();
-  const pass = $('reg-pass')?.value;
-  clearErr(['reg-name', 'reg-email', 'reg-pass']);
-  let ok = true;
-  if (name?.length < 2) { fieldErr('reg-name', 'Введите ваше имя'); ok = false; }
-  if (!isEmail(email)) { fieldErr('reg-email', 'Корректный email'); ok = false; }
-  if (pass?.length < 6) { fieldErr('reg-pass', 'Минимум 6 символов'); ok = false; }
-  if (!ok) { haptic('error'); return; }
-  const btn = $('btn-register');
-  setLoading(btn, true);
-  setTimeout(() => {
-    setLoading(btn, false);
-    let accounts = {};
-    try { accounts = JSON.parse(localStorage.getItem('gaze_accounts') || '{}'); } catch (_) {}
-    if (accounts[email]) { haptic('error'); fieldErr('reg-email', 'Аккаунт уже существует'); return; }
-    haptic('success');
-    state.user = { name, email, phone: '', address: '' };
-    accounts[email] = { pass: btoa(pass), user: state.user };
-    localStorage.setItem('gaze_accounts', JSON.stringify(accounts));
-    localStorage.setItem('gaze_user', JSON.stringify(state.user));
-    showScreen('home'); toast('Аккаунт создан!', 'success');
-  }, 800);
+  $('btn-login')?.addEventListener('click', () => toast('Используйте Telegram для входа'));
+  $('btn-register')?.addEventListener('click', () => toast('Используйте Telegram для входа'));
 }
 
 // ─── ГЛАВНАЯ ──────────────────────────────────────────────────────────────────
 function renderHome() {
   const nameEl = $('home-username');
-  if (nameEl && state.user?.name) nameEl.textContent = state.user.name.split(' ')[0];
+  if (nameEl && state.user?.full_name) nameEl.textContent = state.user.full_name.split(' ')[0];
 }
 
 // ─── КАЛЬКУЛЯТОР (3 шага) ─────────────────────────────────────────────────────
@@ -471,7 +506,6 @@ function renderCalcStep(n) {
 }
 
 function bindCalculator() {
-  // Шаг 1 — площадь и тип
   $$('.cam-type-card').forEach(card => {
     card.addEventListener('click', () => {
       haptic('selection');
@@ -481,7 +515,6 @@ function bindCalculator() {
     });
   });
 
-  // Быстрые варианты площади
   $$('.area-hint').forEach(h => {
     h.addEventListener('click', () => {
       haptic('light');
@@ -505,7 +538,6 @@ function bindCalculator() {
     renderCalcStep(2);
   });
 
-  // Шаг 2 — выбор пакета
   $$('.pkg-card').forEach(card => {
     card.addEventListener('click', () => {
       haptic('medium');
@@ -533,7 +565,6 @@ function bindCalculator() {
     renderCalcStep(3);
   });
 
-  // Шаг 3
   $('btn-calc3-back')?.addEventListener('click', () => { haptic('light'); renderCalcStep(2); });
   $('btn-calc3-order')?.addEventListener('click', () => { haptic('success'); doOrder(); });
 }
@@ -590,63 +621,31 @@ function buildAndShowResult() {
   }
 }
 
-// ─── ОФОРМЛЕНИЕ ЗАКАЗА ────────────────────────────────────────────────────────
-async function doOrder() {
-  if (!state.user) { toast('Войдите в аккаунт', 'error'); return; }
-  if (!state.user.phone) {
-    haptic('error');
-    toast('Укажите телефон в профиле для связи', 'error');
-    setTimeout(() => showScreen('profile'), 1500);
-    return;
-  }
-
-  const btn = $('btn-calc3-order');
-  setLoading(btn, true);
-
-  const orderId = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const orderData = {
-    id: orderId,
-    user: state.user,
-    area: state.calc.area,
-    cameraType: state.calc.cameraType,
-    opts: { soundRecord: state.calc.soundRecord, motionDetect: state.calc.motionDetect },
-    spec: state.calc.result,
-    timestamp: new Date().toISOString()
-  };
-
-  try {
-    await sendOrderToTelegram(orderData);
-    haptic('success');
-    setLoading(btn, false);
-    state.orderCount++;
-    localStorage.setItem('gaze_orders', String(state.orderCount));
-
-    // Показываем экран успеха
-    $('order-id-display').textContent = '#' + orderId;
-    $('order-success').classList.add('show');
-    $$('.calc-step').forEach(s => s.classList.remove('active'));
-
-  } catch (err) {
-    haptic('error');
-    setLoading(btn, false);
-    toast('Ошибка отправки. Проверьте соединение.', 'error');
-    console.error('Telegram send error:', err);
-  }
-}
-
 // ─── ПРОФИЛЬ ─────────────────────────────────────────────────────────────────
 function renderProfile() {
   if (!state.user) return;
   const u = state.user;
-  const initials = (u.name || 'П').split(' ').map(n => n[0] || '').join('').substring(0, 2).toUpperCase();
+  const initials = (u.full_name || 'П').split(' ').map(n => n[0] || '').join('').substring(0, 2).toUpperCase();
 
   const set = (id, val) => { const el = $(id); if (el) el.textContent = val; };
   set('profile-initials', initials);
-  set('profile-display-name', u.name || 'Пользователь');
+  set('profile-display-name', u.full_name || 'Пользователь');
   set('profile-display-email', u.email || '');
-  set('profile-row-name', u.name || '—');
+  set('profile-row-name', u.full_name || '—');
   set('profile-row-email', u.email || '—');
   set('profile-stat-orders', state.orderCount);
+
+  // VIP Status Logic
+  const vipBadge = $('vip-badge');
+  if (vipBadge) {
+    if (state.orderCount >= 3) {
+      vipBadge.style.display = 'inline-block';
+      vipBadge.textContent = '💎 VIP';
+      vipBadge.title = 'Premium функции активированы: Приоритетная поддержка, -5% на монтаж';
+    } else {
+      vipBadge.style.display = 'none';
+    }
+  }
 
   const phoneEl = $('profile-row-phone');
   if (phoneEl) { phoneEl.textContent = u.phone || 'Не указан'; phoneEl.classList.toggle('placeholder', !u.phone); }
@@ -654,34 +653,46 @@ function renderProfile() {
   const addrEl = $('profile-row-address');
   if (addrEl) { addrEl.textContent = u.address || 'Не указан'; addrEl.classList.toggle('placeholder', !u.address); }
 
-  const editName = $('edit-name'); if (editName) editName.value = u.name || '';
+  const editName = $('edit-name'); if (editName) editName.value = u.full_name || '';
   const editPhone = $('edit-phone'); if (editPhone) editPhone.value = u.phone || '';
   const editAddr = $('edit-address'); if (editAddr) editAddr.value = u.address || '';
 }
 
 function bindProfile() {
   $('btn-edit-profile')?.addEventListener('click', () => {
-    haptic(); $('profile-main-view').style.display = 'none'; $('profile-edit-view').style.display = 'flex';
+    haptic();
+    $('profile-main-view').style.display = 'none';
+    $('profile-edit-view').style.display = 'flex';
+    setTimeout(initMap, 100);
   });
   $('btn-edit-back')?.addEventListener('click', () => {
     haptic(); $('profile-main-view').style.display = ''; $('profile-edit-view').style.display = 'none';
   });
-  $('btn-save-profile')?.addEventListener('click', () => {
+  $('btn-save-profile')?.addEventListener('click', async () => {
     haptic('medium');
     const name = $('edit-name')?.value.trim();
     if (name?.length < 2) { toast('Введите корректное имя', 'error'); return; }
-    state.user.name = name;
-    state.user.phone = $('edit-phone')?.value.trim() || '';
-    state.user.address = $('edit-address')?.value.trim() || '';
-    localStorage.setItem('gaze_user', JSON.stringify(state.user));
-    renderProfile();
-    $('profile-main-view').style.display = ''; $('profile-edit-view').style.display = 'none';
-    haptic('success'); toast('Профиль сохранён', 'success');
+
+    const profileData = {
+      full_name: name,
+      phone: $('edit-phone')?.value.trim() || '',
+      address: $('edit-address')?.value.trim() || '',
+      email: state.user.email
+    };
+
+    try {
+      state.user = await StorageService.updateUserProfile(profileData);
+      renderProfile();
+      $('profile-main-view').style.display = ''; $('profile-edit-view').style.display = 'none';
+      haptic('success'); toast('Профиль сохранён', 'success');
+    } catch (e) {
+      toast('Ошибка сохранения: ' + e.message, 'error');
+    }
   });
   $('btn-logout')?.addEventListener('click', () => {
     haptic('rigid');
     state.user = null; state.orderCount = 0;
-    localStorage.removeItem('gaze_user'); localStorage.removeItem('gaze_orders');
+    StorageService.clearSession();
     showScreen('auth'); toast('Вы вышли из аккаунта');
   });
 }
@@ -691,8 +702,8 @@ function bindAll() {
   bindAuth();
   bindCalculator();
   bindProfile();
+  bindSupport();
 
-  // Нижняя навигация
   $$('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
       haptic('light');
@@ -700,10 +711,14 @@ function bindAll() {
     });
   });
 
-  // Промо → калькулятор
   $('promo-to-calc')?.addEventListener('click', () => { haptic(); showScreen('calculator'); });
 
-  // Новый заказ после успеха
+  $('btn-landing-start')?.addEventListener('click', () => {
+    haptic();
+    localStorage.setItem('gaze_seen_landing', 'true');
+    showScreen(state.user ? 'home' : 'auth');
+  });
+
   $('btn-new-order')?.addEventListener('click', () => {
     haptic();
     $('order-success').classList.remove('show');
@@ -714,26 +729,27 @@ function bindAll() {
     const areaInput = $('area-input'); if (areaInput) areaInput.value = '';
     showScreen('calculator');
   });
+
+  document.getElementById('btn-edit-profile-2')?.addEventListener('click', () => {
+    document.getElementById('profile-main-view').style.display = 'none';
+    document.getElementById('profile-edit-view').style.display = 'flex';
+    setTimeout(initMap, 100);
+  });
+  document.getElementById('btn-edit-profile-3')?.addEventListener('click', () => {
+    document.getElementById('profile-main-view').style.display = 'none';
+    document.getElementById('profile-edit-view').style.display = 'flex';
+    setTimeout(initMap, 100);
+  });
 }
 
 // ─── ЗАПУСК ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
 window.App = { init };
 
-// Дополнительные обработчики для кнопок на главной
 document.addEventListener('DOMContentLoaded', () => {
   ['home-pkg-budget','home-pkg-standard','home-pkg-premium'].forEach(id => {
     document.getElementById(id)?.addEventListener('click', () => {
       showScreen('calculator');
     });
-  });
-  // Дублирующие ссылки на редактирование профиля
-  document.getElementById('btn-edit-profile-2')?.addEventListener('click', () => {
-    document.getElementById('profile-main-view').style.display = 'none';
-    document.getElementById('profile-edit-view').style.display = 'flex';
-  });
-  document.getElementById('btn-edit-profile-3')?.addEventListener('click', () => {
-    document.getElementById('profile-main-view').style.display = 'none';
-    document.getElementById('profile-edit-view').style.display = 'flex';
   });
 });
