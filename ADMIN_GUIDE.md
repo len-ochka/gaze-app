@@ -1,25 +1,25 @@
-# Gaze Admin Panel Guide
+# Руководство администратора GAZE
 
-To access the admin panel, you need to verify your Telegram ID and configure the server.
+Для доступа к админ-панели необходимо подтвердить ваш Telegram ID и настроить сервер.
 
-## 1. Finding your Telegram ID
-Open [@userinfobot](https://t.me/userinfobot) in Telegram. It will reply with your ID (e.g., `12345678`).
+## 1. Как узнать свой Telegram ID
+Откройте [@userinfobot](https://t.me/userinfobot) в Telegram. Он пришлет ваш ID (например, `12345678`).
 
-## 2. Configuration
-Open the file `server/.env` and add your ID to the `ADMIN_IDS` variable. Multiple IDs should be separated by commas.
+## 2. Конфигурация
+Откройте файл `server/.env` и добавьте ваш ID в переменную `ADMIN_IDS`. Если администраторов несколько, разделяйте ID запятыми.
 
 ```env
 ADMIN_IDS=12345678,98765432
 ```
 
-## 3. Accessing the Panel
-1. Restart the server: `node server/index.js`.
-2. Open the Mini App.
-3. Your role will be automatically updated to `admin`.
-4. A button **"Админ"** will appear in the bottom navigation bar.
+## 3. Доступ к панели
+1. Перезапустите сервер (при деплое на Railway обновите переменные окружения).
+2. Откройте Mini App.
+3. Ваша роль будет автоматически обновлена до `admin`.
+4. В нижнем меню навигации появится кнопка **"Админ"**.
 
-## Admin Features
-- **Price Management**: Real-time updates of equipment and installation costs.
-- **Order Monitoring**: View all submitted orders and customer details.
-- **User Management**: Block/unblock users with reasons.
-- **System Logs**: View error logs and system events.
+## Возможности администратора
+- **Управление ценами**: Обновление стоимости оборудования и монтажных работ в реальном времени.
+- **Мониторинг заказов**: Просмотр всех заявок, состава оборудования и данных клиентов.
+- **Управление пользователями**: Блокировка/разблокировка пользователей с указанием причины.
+- **Системные логи**: Просмотр ошибок и событий системы (например, отчеты об отправке Email-дублей).

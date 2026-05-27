@@ -229,7 +229,11 @@ app.get('/api/admin/logs', authMiddleware, adminMiddleware, (req, res) => {
 
 app.post('/api/admin/prices', authMiddleware, adminMiddleware, (req, res) => {
   const { key, value } = req.body;
-  db.run('INSERT OR REPLACE INTO prices (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)', [key, value], (err) => {
+  const sql = db.isMySQL
+    ? 'REPLACE INTO prices (`key`, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)'
+    : 'INSERT OR REPLACE INTO prices (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)';
+
+  db.run(sql, [key, value], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });
   });
