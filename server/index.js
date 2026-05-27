@@ -2,12 +2,18 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const path = require('path');
 const db = require('./db');
 const nodemailer = require('nodemailer');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '..')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
@@ -248,6 +254,38 @@ app.post('/api/chat', authMiddleware, (req, res) => {
       res.json({ success: true });
     });
   });
+});
+
+// --- WEBHOOK FOR /START COMMAND ---
+app.post('/api/webhook', async (req, res) => {
+  const update = req.body;
+  if (update.message && update.message.text === '/start') {
+    const chatId = update.message.chat.id;
+    const text = `👋 <b>Добро пожаловать в GAZE!</b>\n\nМы поможем вам подобрать и рассчитать профессиональную систему видеонаблюдения за 2 минуты.\n\nНажмите кнопку ниже, чтобы запустить конструктор:`;
+
+    // Attempt to get the URL from env or fallback
+    const appUrl = process.env.APP_URL || 'https://t.me/your_bot_username/app';
+
+    try {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: text,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '🚀 Запустить GAZE', web_app: { url: appUrl } }
+            ]]
+          }
+        })
+      });
+    } catch (e) {
+      console.error('Webhook error:', e);
+    }
+  }
+  res.sendStatus(200);
 });
 
 const PORT = process.env.PORT || 3000;
