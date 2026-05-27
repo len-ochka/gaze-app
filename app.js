@@ -192,7 +192,12 @@ function buildSpec(pkg, area, camType, opts) {
   const installTotal = PRICES[pkg.install] * camCount;
 
   const equipment = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal;
-  const total = equipment + installTotal;
+  let total = equipment + installTotal;
+
+  // VIP Discount: 5% off if 3+ orders
+  if (state.orderCount >= 3) {
+    total = Math.round(total * 0.95);
+  }
 
   const chCount = camCount <= 4 ? '4-канальный' : camCount <= 8 ? '8-канальный' : '16-канальный';
 
@@ -258,17 +263,29 @@ async function doOrder() {
 
 // ─── YANDEX MAPS ──────────────────────────────────────────────────────────────
 let myMap;
-function initMap() {
+let selectedAddress = '';
+
+function openFullMap() {
+  const modal = $('full-map-view');
+  if (modal) modal.style.display = 'block';
+  haptic('light');
+
   if (!window.ymaps) return;
   window.ymaps.ready(() => {
-    myMap = new ymaps.Map("map", {
-      center: [55.76, 37.64], // Moscow
-      zoom: 10,
+    if (myMap) {
+      myMap.container.fitToViewport();
+      return;
+    }
+    myMap = new ymaps.Map("big-map", {
+      center: [55.76, 37.64],
+      zoom: 11,
       controls: ['zoomControl', 'geolocationControl']
     });
 
     myMap.events.add('click', function (e) {
       const coords = e.get('coords');
+      myMap.geoObjects.removeAll();
+      myMap.geoObjects.add(new ymaps.Placemark(coords));
       getAddress(coords);
     });
   });
@@ -277,10 +294,15 @@ function initMap() {
 function getAddress(coords) {
   ymaps.geocode(coords).then(function (res) {
     const firstGeoObject = res.geoObjects.get(0);
-    const address = firstGeoObject.getAddressLine();
-    const addrInput = $('edit-address');
-    if (addrInput) addrInput.value = address;
+    selectedAddress = firstGeoObject.getAddressLine();
+    const info = $('map-selection-info');
+    if (info) info.textContent = selectedAddress;
   });
+}
+
+function closeFullMap() {
+  const modal = $('full-map-view');
+  if (modal) modal.style.display = 'none';
 }
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
@@ -616,7 +638,7 @@ function buildAndShowResult() {
       <div class="total-row"><span class="total-label">🔧 Монтаж</span><span class="total-value">${fmt(spec.installTotal)}</span></div>
       <div class="total-row total-final">
         <span class="total-label">💰 ИТОГО</span>
-        <span class="total-value">${fmt(spec.total)}</span>
+        <span class="total-value">${fmt(spec.total)}${state.orderCount >= 3 ? ' <span style="font-size:12px;color:var(--accent);">(VIP -5%)</span>' : ''}</span>
       </div>`;
   }
 }
@@ -637,13 +659,16 @@ function renderProfile() {
 
   // VIP Status Logic
   const vipBadge = $('vip-badge');
+  const clientStatus = $('profile-client-status');
   if (vipBadge) {
     if (state.orderCount >= 3) {
       vipBadge.style.display = 'inline-block';
       vipBadge.textContent = '💎 VIP';
       vipBadge.title = 'Premium функции активированы: Приоритетная поддержка, -5% на монтаж';
+      if (clientStatus) clientStatus.textContent = 'GAZE Pro';
     } else {
       vipBadge.style.display = 'none';
+      if (clientStatus) clientStatus.textContent = 'Базовый';
     }
   }
 
@@ -663,7 +688,6 @@ function bindProfile() {
     haptic();
     $('profile-main-view').style.display = 'none';
     $('profile-edit-view').style.display = 'flex';
-    setTimeout(initMap, 100);
   });
   $('btn-edit-back')?.addEventListener('click', () => {
     haptic(); $('profile-main-view').style.display = ''; $('profile-edit-view').style.display = 'none';
@@ -719,6 +743,15 @@ function bindAll() {
     showScreen(state.user ? 'home' : 'auth');
   });
 
+  $('btn-show-guide')?.addEventListener('click', () => {
+    const guide = $('visual-guide');
+    if (guide) {
+      const isVisible = guide.style.display === 'block';
+      guide.style.display = isVisible ? 'none' : 'block';
+      haptic('light');
+    }
+  });
+
   $('btn-new-order')?.addEventListener('click', () => {
     haptic();
     $('order-success').classList.remove('show');
@@ -733,12 +766,28 @@ function bindAll() {
   document.getElementById('btn-edit-profile-2')?.addEventListener('click', () => {
     document.getElementById('profile-main-view').style.display = 'none';
     document.getElementById('profile-edit-view').style.display = 'flex';
-    setTimeout(initMap, 100);
   });
   document.getElementById('btn-edit-profile-3')?.addEventListener('click', () => {
     document.getElementById('profile-main-view').style.display = 'none';
     document.getElementById('profile-edit-view').style.display = 'flex';
-    setTimeout(initMap, 100);
+  });
+
+  // Map Listeners
+  $('btn-map-open')?.addEventListener('click', openFullMap);
+  $('btn-map-close')?.addEventListener('click', closeFullMap);
+  $('btn-map-manual')?.addEventListener('click', () => {
+    closeFullMap();
+    $('edit-address')?.focus();
+  });
+  $('btn-map-confirm')?.addEventListener('click', () => {
+    if (selectedAddress) {
+      const input = $('edit-address');
+      if (input) input.value = selectedAddress;
+      closeFullMap();
+      haptic('success');
+    } else {
+      toast('Выберите адрес на карте', 'error');
+    }
   });
 }
 

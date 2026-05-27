@@ -1,6 +1,10 @@
 const StorageService = (() => {
   const PREFIX = 'gaze_';
-  const API_URL = 'http://localhost:3000/api';
+  // If we are on localhost, use the local port 3000.
+  // Otherwise, assume the API is served from the same host under /api
+  const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:3000/api'
+    : window.location.origin + '/api';
 
   function _key(name) {
     return PREFIX + name;
@@ -18,12 +22,19 @@ const StorageService = (() => {
     try {
       const response = await fetch(`${API_URL}${endpoint}`, options);
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'API Request failed');
+        let errorMsg = 'API Request failed';
+        try {
+          const err = await response.json();
+          errorMsg = err.error || errorMsg;
+        } catch (parseErr) {}
+        throw new Error(errorMsg);
       }
       return await response.json();
     } catch (e) {
       console.error(`[StorageService] API Error (${endpoint}):`, e);
+      if (e.message === 'Failed to fetch') {
+        throw new Error('Сервер недоступен. Проверьте подключение или API_URL.');
+      }
       throw e;
     }
   }
@@ -59,6 +70,9 @@ const StorageService = (() => {
     try {
       const user = await apiRequest('/auth/sync', 'POST');
       set('user', user);
+      if (user.order_count !== undefined) {
+        set('order_count', user.order_count);
+      }
       return user;
     } catch (e) {
       return get('user');
