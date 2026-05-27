@@ -274,8 +274,24 @@ async function doOrder() {
 
     // Показываем экран успеха
     $('order-id-display').textContent = '#' + orderId;
-    $('order-success').classList.add('show');
+  const successEl = $('order-success');
+  successEl.classList.add('show');
     $$('.calc-step').forEach(s => s.classList.remove('active'));
+
+  anime({
+    targets: successEl,
+    scale: [0.8, 1],
+    opacity: [0, 1],
+    duration: 800,
+    easing: 'easeOutElastic(1, .6)'
+  });
+
+  anime({
+    targets: successEl.querySelector('.success-icon'),
+    rotate: '1turn',
+    duration: 1000,
+    easing: 'easeInOutBack'
+  });
 
   } catch (err) {
     haptic('error');
@@ -294,24 +310,41 @@ function openFullMap() {
   if (modal) modal.style.display = 'block';
   haptic('light');
 
+  const currentAddr = $('edit-address')?.value;
+
   if (!window.ymaps) return;
   window.ymaps.ready(() => {
-    if (myMap) {
-      myMap.container.fitToViewport();
-      return;
-    }
-    myMap = new ymaps.Map("big-map", {
-      center: [55.76, 37.64],
-      zoom: 11,
-      controls: ['zoomControl', 'geolocationControl']
-    });
+    if (!myMap) {
+      myMap = new ymaps.Map("big-map", {
+        center: [55.76, 37.64],
+        zoom: 11,
+        controls: ['zoomControl', 'geolocationControl']
+      });
 
-    myMap.events.add('click', function (e) {
-      const coords = e.get('coords');
-      myMap.geoObjects.removeAll();
-      myMap.geoObjects.add(new ymaps.Placemark(coords));
-      getAddress(coords);
-    });
+      myMap.events.add('click', function (e) {
+        const coords = e.get('coords');
+        myMap.geoObjects.removeAll();
+        myMap.geoObjects.add(new ymaps.Placemark(coords));
+        getAddress(coords);
+      });
+    } else {
+      myMap.container.fitToViewport();
+    }
+
+    // Если адрес уже введен, центрируем карту на нем
+    if (currentAddr && currentAddr.length > 5) {
+      ymaps.geocode(currentAddr).then(res => {
+        const obj = res.geoObjects.get(0);
+        if (obj) {
+          const coords = obj.geometry.getCoordinates();
+          myMap.setCenter(coords, 16);
+          myMap.geoObjects.removeAll();
+          myMap.geoObjects.add(new ymaps.Placemark(coords));
+          selectedAddress = obj.getAddressLine();
+          if ($('map-selection-info')) $('map-selection-info').textContent = selectedAddress;
+        }
+      });
+    }
   });
 }
 
@@ -512,23 +545,78 @@ async function init() {
   }
 }
 
-// ─── НАВИГАЦИЯ ────────────────────────────────────────────────────────────────
+// ─── НАВИГАЦИЯ И АНИМАЦИИ ──────────────────────────────────────────────────────
 function showScreen(name) {
-  $$('.screen').forEach(s => s.classList.remove('active'));
-  const t = $('screen-' + name);
-  if (t) t.classList.add('active');
+  const oldScreen = document.querySelector('.screen.active');
+  const newScreen = $('screen-' + name);
+
+  if (!newScreen) return;
+  if (oldScreen === newScreen) return;
+
+  // Анимация перехода через Anime.js
+  if (oldScreen) {
+    anime({
+      targets: oldScreen,
+      opacity: [1, 0],
+      translateX: [0, -20],
+      duration: 300,
+      easing: 'easeInQuad',
+      complete: () => {
+        oldScreen.classList.remove('active');
+        prepareNewScreen(name, newScreen);
+      }
+    });
+  } else {
+    prepareNewScreen(name, newScreen);
+  }
+}
+
+function prepareNewScreen(name, el) {
+  el.classList.add('active');
   state.screen = name;
 
+  // Анимация появления нового экрана
+  anime({
+    targets: el,
+    opacity: [0, 1],
+    translateX: [20, 0],
+    duration: 400,
+    easing: 'easeOutQuad'
+  });
+
   const nav = $('bottom-nav');
-  if (nav) nav.style.display = (name === 'auth' || name === 'landing') ? 'none' : '';
+  if (nav) {
+    const shouldHideNav = (name === 'auth' || name === 'landing');
+    nav.style.display = shouldHideNav ? 'none' : 'flex';
+
+    // Плавное появление навигации
+    if (!shouldHideNav && nav.style.opacity === '0') {
+      anime({ targets: nav, opacity: [0, 1], translateY: [20, 0], duration: 500 });
+    }
+  }
 
   $$('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.screen === name));
 
+  // Инициализация логики экранов
   if (name === 'home') renderHome();
   if (name === 'profile') renderProfile();
-  if (name === 'calculator') renderCalcStep(1);
+  if (name === 'calculator') {
+    renderCalcStep(1);
+    animateEntrance('#calc-step-1');
+  }
   if (name === 'admin') renderAdmin();
   if (name === 'support') renderSupport();
+}
+
+function animateEntrance(selector) {
+  anime({
+    targets: selector + ' > *',
+    opacity: [0, 1],
+    translateY: [20, 0],
+    delay: anime.stagger(100),
+    duration: 600,
+    easing: 'easeOutExpo'
+  });
 }
 
 // ─── АВТОРИЗАЦИЯ ──────────────────────────────────────────────────────────────
@@ -569,9 +657,34 @@ function renderHome() {
 let calcStep = 1;
 
 function renderCalcStep(n) {
+  const oldStep = document.querySelector('.calc-step.active');
+  const newStep = $('calc-step-' + n);
+
+  if (oldStep && oldStep !== newStep) {
+    anime({
+      targets: oldStep,
+      opacity: [1, 0],
+      translateX: [0, -10],
+      duration: 200,
+      easing: 'easeInQuad',
+      complete: () => {
+        oldStep.classList.remove('active');
+        activateStep(n, newStep);
+      }
+    });
+  } else {
+    activateStep(n, newStep);
+  }
+}
+
+function activateStep(n, el) {
+  if (!el) return;
   calcStep = n;
-  $$('.calc-step').forEach(s => s.classList.remove('active'));
-  $('calc-step-' + n)?.classList.add('active');
+  el.classList.add('active');
+
+  // Анимация элементов внутри шага
+  animateEntrance('#calc-step-' + n);
+
   $$('.step-dot').forEach((dot, i) => {
     dot.classList.remove('active', 'done');
     if (i + 1 === n) dot.classList.add('active');
