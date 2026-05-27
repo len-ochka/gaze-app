@@ -2,63 +2,68 @@ require('dotenv').config();
 const path = require('path');
 
 let db;
+let initialized = false;
 
-if (process.env.MYSQL_URL || process.env.MYSQLHOST) {
-  // MySQL configuration (for Railway.app)
-  const mysql = require('mysql2');
-  const url = process.env.MYSQL_URL || `mysql://${process.env.MYSQLUSER}:${process.env.MYSQLPASSWORD}@${process.env.MYSQLHOST}:${process.env.MYSQLPORT}/${process.env.MYSQLDATABASE}`;
+// Пул подключений MySQL или база SQLite
+const getDb = () => {
+  if (db) return db;
 
-  const pool = mysql.createPool(url);
+  if (process.env.MYSQL_URL || process.env.MYSQLHOST) {
+    const mysql = require('mysql2');
+    const url = process.env.MYSQL_URL || `mysql://${process.env.MYSQLUSER}:${process.env.MYSQLPASSWORD}@${process.env.MYSQLHOST}:${process.env.MYSQLPORT}/${process.env.MYSQLDATABASE}`;
 
-  // Wrapper to match sqlite3 API roughly
-  db = {
-    run: (sql, params, callback) => {
-      // Convert SQLite's '?' to MySQL's '?' (same)
-      // Convert 'INSERT OR REPLACE' to 'REPLACE INTO' if needed, but better handle in index.js
-      pool.query(sql, params, (err, results) => {
-        if (callback) callback.call({ lastID: results ? results.insertId : null, changes: results ? results.affectedRows : 0 }, err);
-      });
-    },
-    get: (sql, params, callback) => {
-      pool.query(sql, params, (err, results) => {
-        if (callback) callback(err, results ? results[0] : null);
-      });
-    },
-    all: (sql, params, callback) => {
-      pool.query(sql, params, (err, results) => {
-        if (callback) callback(err, results);
-      });
-    },
-    exec: (sql, callback) => {
-      pool.query(sql, (err) => {
-        if (callback) callback(err);
-      });
-    },
-    isMySQL: true
-  };
+    console.log('Попытка подключения к MySQL...');
+    const pool = mysql.createPool({
+      uri: url,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+    });
 
-  console.log('Using MySQL database');
-} else {
-  // SQLite configuration (Local)
-  const sqlite3 = require('sqlite3').verbose();
-  const dbPath = path.resolve(__dirname, 'gaze.sqlite');
-  const sqliteDb = new sqlite3.Database(dbPath);
+    db = {
+      run: (sql, params, callback) => {
+        pool.query(sql, params, (err, results) => {
+          if (callback) callback.call({ lastID: results ? results.insertId : null, changes: results ? results.affectedRows : 0 }, err);
+        });
+      },
+      get: (sql, params, callback) => {
+        pool.query(sql, params, (err, results) => {
+          if (callback) callback(err, results ? results[0] : null);
+        });
+      },
+      all: (sql, params, callback) => {
+        pool.query(sql, params, (err, results) => {
+          if (callback) callback(err, results);
+        });
+      },
+      exec: (sql, callback) => {
+        pool.query(sql, (err) => {
+          if (callback) callback(err);
+        });
+      },
+      isMySQL: true
+    };
+  } else {
+    const sqlite3 = require('sqlite3').verbose();
+    const dbPath = path.resolve(__dirname, 'gaze.sqlite');
+    const sqliteDb = new sqlite3.Database(dbPath);
 
-  db = {
-    run: (sql, params, callback) => sqliteDb.run(sql, params, callback),
-    get: (sql, params, callback) => sqliteDb.get(sql, params, callback),
-    all: (sql, params, callback) => sqliteDb.all(sql, params, callback),
-    exec: (sql, callback) => sqliteDb.exec(sql, callback),
-    serialize: (cb) => sqliteDb.serialize(cb),
-    prepare: (sql) => sqliteDb.prepare(sql),
-    isMySQL: false
-  };
-  console.log('Using SQLite database');
-}
+    db = {
+      run: (sql, params, callback) => sqliteDb.run(sql, params, callback),
+      get: (sql, params, callback) => sqliteDb.get(sql, params, callback),
+      all: (sql, params, callback) => sqliteDb.all(sql, params, callback),
+      exec: (sql, callback) => sqliteDb.exec(sql, callback),
+      isMySQL: false
+    };
+    console.log('Используется SQLite');
+  }
+  return db;
+};
 
-// Initialization logic
-const initDb = () => {
-  const isMySQL = db.isMySQL;
+const initDb = async () => {
+  if (initialized) return;
+  const database = getDb();
+  const isMySQL = database.isMySQL;
   const autoInc = isMySQL ? 'AUTO_INCREMENT' : 'AUTOINCREMENT';
   const textType = isMySQL ? 'LONGTEXT' : 'TEXT';
 
@@ -109,41 +114,43 @@ const initDb = () => {
     )`
   ];
 
-  // Execute each query
-  const executeSequentially = (index) => {
-    if (index < queries.length) {
-      db.run(queries[index], [], (err) => {
-        if (err) console.error('Error creating table:', err);
-        executeSequentially(index + 1);
+  console.log('Инициализация таблиц базы данных...');
+
+  for (const query of queries) {
+    await new Promise((resolve, reject) => {
+      database.run(query, [], (err) => {
+        if (err) {
+          console.error('Ошибка создания таблицы:', err);
+          reject(err);
+        } else resolve();
       });
-    } else {
-      seedPrices();
-    }
+    });
+  }
+
+  // Сид цен
+  const initialPrices = {
+    cam_budget: 1490, cam_standard: 2900, cam_premium: 5900,
+    dvr_budget_4: 4900, dvr_budget_8: 7900, dvr_standard_4: 8500, dvr_standard_8: 14900, dvr_standard_16: 24900, dvr_premium_4: 14900, dvr_premium_8: 24900, dvr_premium_16: 39900,
+    cable_budget: 18, cable_standard: 28, cable_premium: 55,
+    poe_budget_4: 1900, poe_budget_8: 3200, poe_standard_4: 3200, poe_standard_8: 5900, poe_premium_4: 5900, poe_premium_8: 9800, poe_premium_16: 16900,
+    hdd_budget: 2500, hdd_standard: 3500, hdd_premium: 6500,
+    install_budget: 2500, install_standard: 3500, install_premium: 4500,
+    mic: 1200, courier: 1000
   };
 
-  const seedPrices = () => {
-    const initialPrices = {
-      cam_budget: 1490, cam_standard: 2900, cam_premium: 5900,
-      dvr_budget_4: 4900, dvr_budget_8: 7900, dvr_standard_4: 8500, dvr_standard_8: 14900, dvr_standard_16: 24900, dvr_premium_4: 14900, dvr_premium_8: 24900, dvr_premium_16: 39900,
-      cable_budget: 18, cable_standard: 28, cable_premium: 55,
-      poe_budget_4: 1900, poe_budget_8: 3200, poe_standard_4: 3200, poe_standard_8: 5900, poe_premium_4: 5900, poe_premium_8: 9800, poe_premium_16: 16900,
-      hdd_budget: 2500, hdd_standard: 3500, hdd_premium: 6500,
-      install_budget: 1500, install_standard: 2500, install_premium: 4000,
-      mic: 890, courier: 500
-    };
+  const insertSql = isMySQL
+    ? "INSERT IGNORE INTO prices (`key`, value) VALUES (?, ?)"
+    : "INSERT OR IGNORE INTO prices (key, value) VALUES (?, ?)";
 
-    const insertSql = isMySQL
-      ? "INSERT IGNORE INTO prices (\`key\`, value) VALUES (?, ?)"
-      : "INSERT OR IGNORE INTO prices (key, value) VALUES (?, ?)";
+  for (const [key, value] of Object.entries(initialPrices)) {
+    database.run(insertSql, [key, value]);
+  }
 
-    for (const [key, value] of Object.entries(initialPrices)) {
-      db.run(insertSql, [key, value]);
-    }
-  };
-
-  executeSequentially(0);
+  initialized = true;
+  console.log('База данных готова.');
 };
 
-initDb();
-
-module.exports = db;
+module.exports = {
+  getDb,
+  initDb
+};

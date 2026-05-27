@@ -212,8 +212,8 @@ function buildSpec(pkg, area, camType, opts) {
 
   let laborTotal = baseInstall + nvrInstall + remoteSetup + cableWork;
 
-  // Apply 8% marketing margin on labor
-  laborTotal = Math.round(laborTotal * 1.08 / 100) * 100; // Round to nearest 100
+  // Применяем маржу 8% на работы и округляем до 100 рублей
+  laborTotal = Math.round((laborTotal * 1.08) / 100) * 100;
 
   const equipment = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal;
   let total = equipment + laborTotal;
@@ -352,38 +352,38 @@ function getAddress(coords) {
   ymaps.geocode(coords).then(function (res) {
     const firstGeoObject = res.geoObjects.get(0);
     if (!firstGeoObject) {
-        selectedAddress = '';
-        if ($('map-selection-info')) $('map-selection-info').textContent = 'Адрес не найден';
-        return;
-    }
-
-    // Yandex check for address precision
-    const precision = firstGeoObject.properties.get('metaDataProperty.GeocoderMetaData.precision');
-    if (precision === 'other' || precision === 'country') {
-        toast('Слишком неточный адрес. Выберите здание.', 'error');
-        selectedAddress = '';
-        if ($('map-selection-info')) $('map-selection-info').textContent = 'Выберите точный адрес (дом/строение)';
-        return;
+      selectedAddress = '';
+      if ($('map-selection-info')) $('map-selection-info').textContent = 'Адрес не найден';
+      return;
     }
 
     selectedAddress = firstGeoObject.getAddressLine();
     const info = $('map-selection-info');
     if (info) info.textContent = selectedAddress;
+
+    // Сразу обновляем стейт и поле, чтобы не потерять выбор
+    const input = $('edit-address');
+    if (input) {
+      input.value = selectedAddress;
+      input.classList.remove('error');
+    }
   });
 }
 
 async function validateManualAddress(addr) {
-    if (!addr || addr.length < 5) return false;
-    try {
-        const res = await ymaps.geocode(addr);
-        const obj = res.geoObjects.get(0);
-        if (!obj) return false;
-        const precision = obj.properties.get('metaDataProperty.GeocoderMetaData.precision');
-        // Valid if exact house or street (street might be okay but house is better)
-        return ['exact', 'number', 'near', 'range'].includes(precision);
-    } catch (e) {
-        return false;
-    }
+  if (!addr || addr.length < 5) return false;
+  if (!window.ymaps) return true; // Fail-safe
+  try {
+    const res = await ymaps.geocode(addr);
+    const obj = res.geoObjects.get(0);
+    if (!obj) return false;
+    // Если объект найден и это хотя бы улица или здание - считаем валидным
+    const meta = obj.properties.get('metaDataProperty.GeocoderMetaData');
+    const kind = meta.kind;
+    return ['house', 'street', 'district', 'locality'].includes(kind);
+  } catch (e) {
+    return true; // В случае ошибки API не блокируем пользователя
+  }
 }
 
 function closeFullMap() {
@@ -514,16 +514,33 @@ async function init() {
     if (tg.setBackgroundColor) tg.setBackgroundColor('#080c14');
   }
 
+  // Очищаем экран загрузки если он завис
+  const authTimeout = setTimeout(() => {
+    if (state.screen === 'auth' || !state.user) {
+       console.log('Auth taking too long, forcing check...');
+       const cachedUser = StorageService.getUser();
+       if (cachedUser) {
+           state.user = cachedUser;
+           showScreen('home');
+       }
+    }
+  }, 3000);
+
   // Синхронизация с бэкендом
   try {
-    state.user = await StorageService.syncUser();
-    state.orderCount = StorageService.getOrderCount();
+    const syncResult = await StorageService.syncUser();
+    if (syncResult) {
+      state.user = syncResult;
+      state.orderCount = StorageService.getOrderCount();
+      clearTimeout(authTimeout);
+    }
 
-    // Загрузка актуальных цен
     const remotePrices = await StorageService.getPrices();
     Object.assign(PRICES, remotePrices);
   } catch (e) {
     console.error('Init sync failed', e);
+    // Пытаемся восстановиться из кеша
+    state.user = StorageService.getUser();
   }
 
   bindAll();
@@ -540,8 +557,10 @@ async function init() {
   const hasSeenLanding = localStorage.getItem('gaze_seen_landing');
   if (!hasSeenLanding) {
     showScreen('landing');
+  } else if (state.user) {
+    showScreen('home');
   } else {
-    showScreen(state.user ? 'home' : 'auth');
+    showScreen('auth');
   }
 }
 
@@ -871,10 +890,10 @@ function bindProfile() {
         return;
     }
 
-    // RU Phone Validation
-    const phoneRegex = /^((\+7|7|8)+([0-9]){10})$/;
-    if (!phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''))) {
-        fieldErr('edit-phone', 'Введите корректный номер российского оператора (+7... или 8...)');
+    // Улучшенная валидация RU номера
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!/^(7|8)9\d{9}$/.test(cleanPhone)) {
+        fieldErr('edit-phone', 'Введите корректный номер (например, +7 999 000-00-00)');
         return;
     }
 
@@ -923,6 +942,12 @@ function bindAll() {
   $$('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
       haptic('light');
+      anime({
+        targets: btn,
+        scale: [1, 0.9, 1],
+        duration: 200,
+        easing: 'easeOutQuad'
+      });
       if (btn.dataset.screen) showScreen(btn.dataset.screen);
     });
   });
@@ -931,8 +956,16 @@ function bindAll() {
 
   $('btn-landing-start')?.addEventListener('click', () => {
     haptic();
-    localStorage.setItem('gaze_seen_landing', 'true');
-    showScreen(state.user ? 'home' : 'auth');
+    anime({
+      targets: '#btn-landing-start',
+      scale: [1, 0.9, 1.1, 1],
+      duration: 400,
+      easing: 'easeInOutQuad',
+      complete: () => {
+        localStorage.setItem('gaze_seen_landing', 'true');
+        showScreen(state.user ? 'home' : 'auth');
+      }
+    });
   });
 
   $('btn-show-guide')?.addEventListener('click', () => {

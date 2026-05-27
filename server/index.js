@@ -3,13 +3,16 @@ const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
 const path = require('path');
-const db = require('./db');
+const { getDb, initDb } = require('./db');
 const nodemailer = require('nodemailer');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
+
+// Инициализация БД перед запуском сервера
+const db = getDb();
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));
@@ -33,7 +36,6 @@ async function sendTelegramMessage(chatId, text) {
   }
 }
 
-// --- SMTP FALLBACK CONFIG ---
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.ethereal.email',
   port: process.env.SMTP_PORT || 587,
@@ -61,7 +63,6 @@ async function sendEmailFallback(orderData, user) {
   }
 }
 
-// --- UTILS ---
 function verifyTelegramWebAppData(initData) {
   if (!initData) return null;
   const urlParams = new URLSearchParams(initData);
@@ -85,7 +86,6 @@ function verifyTelegramWebAppData(initData) {
   return null;
 }
 
-// --- MIDDLEWARE ---
 const authMiddleware = (req, res, next) => {
   const initData = req.headers['x-tg-init-data'];
   const user = verifyTelegramWebAppData(initData);
@@ -101,11 +101,8 @@ const adminMiddleware = (req, res, next) => {
   });
 };
 
-// --- ROUTES ---
-
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
-// Auth & User sync
 app.post('/api/auth/sync', authMiddleware, (req, res) => {
   const { id, username, first_name, last_name } = req.tgUser;
   const fullName = [first_name, last_name].filter(Boolean).join(' ');
@@ -115,7 +112,6 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
 
     if (!user) {
-      // Check if this is the first user
       db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
         const isFirst = !err && row.count === 0;
         let role = (isFirst || isAdminById) ? 'admin' : 'user';
@@ -132,19 +128,15 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
       });
     } else {
       if (user.is_blocked) return res.status(403).json({ error: 'User is blocked', reason: user.block_reason });
-
-      // Update role if user is now in ADMIN_IDS but wasn't admin before
       if (isAdminById && user.role !== 'admin') {
           db.run('UPDATE users SET role = "admin" WHERE tg_id = ?', [id]);
           user.role = 'admin';
       }
-
       res.json(user);
     }
   });
 });
 
-// Update profile
 app.put('/api/user/profile', authMiddleware, (req, res) => {
   const { full_name, email, phone, address } = req.body;
   db.run('UPDATE users SET full_name = ?, email = ?, phone = ?, address = ? WHERE tg_id = ?',
@@ -156,7 +148,6 @@ app.put('/api/user/profile', authMiddleware, (req, res) => {
   );
 });
 
-// Get prices
 app.get('/api/prices', (req, res) => {
   db.all('SELECT * FROM prices', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -166,13 +157,9 @@ app.get('/api/prices', (req, res) => {
   });
 });
 
-// Submit order
 app.post('/api/orders', authMiddleware, (req, res) => {
   const { id, area, camera_type, package_id, options, spec, total_price } = req.body;
-
-  if (!id || !total_price) {
-      return res.status(400).json({ error: 'Missing order data' });
-  }
+  if (!id || !total_price) return res.status(400).json({ error: 'Missing order data' });
 
   db.get('SELECT * FROM users WHERE tg_id = ?', [req.tgUser.id], async (err, user) => {
     if (err) return res.status(500).json({ error: 'Database error fetching user' });
@@ -182,10 +169,8 @@ app.post('/api/orders', authMiddleware, (req, res) => {
       [id, user.id, area, camera_type, package_id, JSON.stringify(options || {}), JSON.stringify(spec || {}), total_price],
       async function(insErr) {
         if (insErr) {
-          console.error('DB Insert Error:', insErr);
           db.run('INSERT INTO logs (level, message, context) VALUES (?, ?, ?)',
             ['error', 'Order submission failed', JSON.stringify({ error: insErr.message, orderId: id })]);
-
           try {
             await sendEmailFallback(req.body, user);
             return res.status(500).json({ error: 'Order failed to save but email fallback triggered' });
@@ -194,9 +179,7 @@ app.post('/api/orders', authMiddleware, (req, res) => {
           }
         }
 
-        // Async notifications (dont block response)
         const text = `🚀 <b>Новая заявка #${id}</b>\n\nКлиент: ${user.full_name}\nОбъект: ${area}м², ${camera_type}\nПакет: ${package_id}\nСумма: ${total_price} ₽`;
-
         sendTelegramMessage(user.tg_id, text).catch(e => console.error('Notify user failed:', e));
 
         db.get('SELECT tg_id FROM users WHERE role = "admin" LIMIT 1', (admErr, admin) => {
@@ -204,14 +187,11 @@ app.post('/api/orders', authMiddleware, (req, res) => {
             sendTelegramMessage(admin.tg_id, `ADMIN NOTIFY: ${text}`).catch(e => console.error('Notify admin failed:', e));
           }
         });
-
         res.json({ success: true, orderId: id });
       }
     );
   });
 });
-
-// --- ADMIN ROUTES ---
 
 app.get('/api/admin/orders', authMiddleware, adminMiddleware, (req, res) => {
   db.all('SELECT o.*, u.full_name FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC', [], (err, rows) => {
@@ -247,8 +227,6 @@ app.post('/api/admin/users/block', authMiddleware, adminMiddleware, (req, res) =
   });
 });
 
-// --- CHAT ROUTES ---
-
 app.get('/api/chat', authMiddleware, (req, res) => {
   db.get('SELECT id FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
     if (err || !user) return res.status(404).json({ error: 'User not found' });
@@ -265,26 +243,20 @@ app.post('/api/chat', authMiddleware, (req, res) => {
     if (err || !user) return res.status(404).json({ error: 'User not found' });
     db.run('INSERT INTO messages (user_id, sender, text) VALUES (?, ?, ?)', [user.id, 'user', text], function(err) {
       if (err) return res.status(500).json({ error: err.message });
-
-      // Auto-reply mock
       setTimeout(() => {
         db.run('INSERT INTO messages (user_id, sender, text) VALUES (?, ?, ?)',
           [user.id, 'admin', 'Спасибо за обращение! Наш специалист ответит вам в ближайшее время.'], () => {});
       }, 1000);
-
       res.json({ success: true });
     });
   });
 });
 
-// --- WEBHOOK FOR /START COMMAND ---
 app.post('/api/webhook', async (req, res) => {
   const update = req.body;
   if (update.message && update.message.text === '/start') {
     const chatId = update.message.chat.id;
     const text = `👋 <b>Добро пожаловать в GAZE!</b>\n\nМы поможем вам подобрать и рассчитать профессиональную систему видеонаблюдения за 2 минуты.\n\nНажмите кнопку ниже, чтобы запустить конструктор:`;
-
-    // Attempt to get the URL from env or fallback
     const appUrl = process.env.APP_URL || 'https://t.me/your_bot_username/app';
 
     try {
@@ -296,9 +268,7 @@ app.post('/api/webhook', async (req, res) => {
           text: text,
           parse_mode: 'HTML',
           reply_markup: {
-            inline_keyboard: [[
-              { text: '🚀 Запустить GAZE', web_app: { url: appUrl } }
-            ]]
+            inline_keyboard: [[{ text: '🚀 Запустить GAZE', web_app: { url: appUrl } }]]
           }
         })
       });
@@ -309,11 +279,17 @@ app.post('/api/webhook', async (req, res) => {
   res.sendStatus(200);
 });
 
-// Global Error Handler
 app.use((err, req, res, next) => {
   console.error('Unhandled Error:', err);
   res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+
+// Гарантированная инициализация перед прослушиванием порта
+initDb().then(() => {
+  app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+}).catch(err => {
+  console.error('КРИТИЧЕСКАЯ ОШИБКА: База данных не инициализирована!', err);
+  process.exit(1);
+});
