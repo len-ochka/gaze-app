@@ -16,6 +16,7 @@ app.get('/', (req, res) => {
 });
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map(id => parseInt(id.trim())).filter(Boolean);
 
 async function sendTelegramMessage(chatId, text) {
   try {
@@ -108,6 +109,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 app.post('/api/auth/sync', authMiddleware, (req, res) => {
   const { id, username, first_name, last_name } = req.tgUser;
   const fullName = [first_name, last_name].filter(Boolean).join(' ');
+  const isAdminById = ADMIN_IDS.includes(id);
 
   db.get('SELECT u.*, (SELECT COUNT(*) FROM orders WHERE user_id = u.id) as order_count FROM users u WHERE u.tg_id = ?', [id], (err, user) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -116,7 +118,7 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
       // Check if this is the first user
       db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
         const isFirst = !err && row.count === 0;
-        const role = isFirst ? 'admin' : 'user';
+        let role = (isFirst || isAdminById) ? 'admin' : 'user';
 
         db.run('INSERT INTO users (tg_id, username, full_name, role) VALUES (?, ?, ?, ?)',
           [id, username, fullName, role],
@@ -130,6 +132,13 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
       });
     } else {
       if (user.is_blocked) return res.status(403).json({ error: 'User is blocked', reason: user.block_reason });
+
+      // Update role if user is now in ADMIN_IDS but wasn't admin before
+      if (isAdminById && user.role !== 'admin') {
+          db.run('UPDATE users SET role = "admin" WHERE tg_id = ?', [id]);
+          user.role = 'admin';
+      }
+
       res.json(user);
     }
   });
@@ -161,34 +170,42 @@ app.get('/api/prices', (req, res) => {
 app.post('/api/orders', authMiddleware, (req, res) => {
   const { id, area, camera_type, package_id, options, spec, total_price } = req.body;
 
-  db.get('SELECT * FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
-    if (err || !user) return res.status(500).json({ error: 'User not found' });
+  if (!id || !total_price) {
+      return res.status(400).json({ error: 'Missing order data' });
+  }
+
+  db.get('SELECT * FROM users WHERE tg_id = ?', [req.tgUser.id], async (err, user) => {
+    if (err) return res.status(500).json({ error: 'Database error fetching user' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
     db.run('INSERT INTO orders (id, user_id, area, camera_type, package_id, options, spec, total_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, user.id, area, camera_type, package_id, JSON.stringify(options), JSON.stringify(spec), total_price],
-      async function(err) {
-        if (err) {
+      [id, user.id, area, camera_type, package_id, JSON.stringify(options || {}), JSON.stringify(spec || {}), total_price],
+      async function(insErr) {
+        if (insErr) {
+          console.error('DB Insert Error:', insErr);
           db.run('INSERT INTO logs (level, message, context) VALUES (?, ?, ?)',
-            ['error', 'Order submission failed, triggering SMTP fallback', JSON.stringify({ error: err.message, orderId: id })]);
+            ['error', 'Order submission failed', JSON.stringify({ error: insErr.message, orderId: id })]);
 
-          await sendEmailFallback(req.body, user);
-          return res.status(500).json({ error: 'Order failed but fallback email sent' });
+          try {
+            await sendEmailFallback(req.body, user);
+            return res.status(500).json({ error: 'Order failed to save but email fallback triggered' });
+          } catch (smtpErr) {
+            return res.status(500).json({ error: 'Fatal error: order failed and email fallback failed' });
+          }
         }
 
-        // Notification text
+        // Async notifications (dont block response)
         const text = `🚀 <b>Новая заявка #${id}</b>\n\nКлиент: ${user.full_name}\nОбъект: ${area}м², ${camera_type}\nПакет: ${package_id}\nСумма: ${total_price} ₽`;
 
-        // Notify user via Bot
-        const notified = await sendTelegramMessage(user.tg_id, text);
+        sendTelegramMessage(user.tg_id, text).catch(e => console.error('Notify user failed:', e));
 
-        // Notify admin via Bot (if different from user)
-        db.get('SELECT tg_id FROM users WHERE role = "admin" LIMIT 1', async (err, admin) => {
+        db.get('SELECT tg_id FROM users WHERE role = "admin" LIMIT 1', (admErr, admin) => {
           if (admin && admin.tg_id !== user.tg_id) {
-            await sendTelegramMessage(admin.tg_id, `ADMIN NOTIFY: ${text}`);
+            sendTelegramMessage(admin.tg_id, `ADMIN NOTIFY: ${text}`).catch(e => console.error('Notify admin failed:', e));
           }
         });
 
-        res.json({ success: true, orderId: id, notified });
+        res.json({ success: true, orderId: id });
       }
     );
   });
@@ -286,6 +303,12 @@ app.post('/api/webhook', async (req, res) => {
     }
   }
   res.sendStatus(200);
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err);
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 
 const PORT = process.env.PORT || 3000;

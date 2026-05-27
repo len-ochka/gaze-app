@@ -36,14 +36,18 @@ const PRICES = {
   hdd_standard: 3500,  // 2ТБ
   hdd_premium: 6500,   // 4ТБ
 
-  // Монтаж (за точку)
-  install_budget:   1500,
-  install_standard: 2500,
-  install_premium:  4000,
+  // Монтаж (за точку) - Московские цены 2026
+  install_budget:   2500,   // Базовый (внутренние)
+  install_standard: 3500,   // Стандартный (уличные до 3м)
+  install_premium:  4500,   // Высотный/Сложный (>3м)
+
+  install_nvr: 3000,        // Монтаж и настройка NVR
+  setup_remote: 1500,       // Удаленный доступ
 
   // Дополнительно
-  mic: 890,
-  courier: 500
+  cable_work: 100,          // Прокладка кабеля за метр
+  mic: 1200,
+  courier: 1000
 };
 
 // ─── ПАКЕТЫ ───────────────────────────────────────────────────────────────────
@@ -130,6 +134,16 @@ function setLoading(btn, on) {
 
 function isEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function fieldErr(id, msg) {
   const el = $(id); if (!el) return;
   el.classList.add('error');
@@ -189,10 +203,20 @@ function buildSpec(pkg, area, camType, opts) {
   const poeTotal = PRICES[poeKey] || 0;
   const hddTotal = PRICES[pkg.hdd];
   const micTotal = opts.soundRecord ? PRICES.mic * (camCount <= 4 ? 1 : 2) : 0;
-  const installTotal = PRICES[pkg.install] * camCount;
+
+  // Labor calculation with Moscow rates & margin
+  const baseInstall = PRICES[pkg.install] * camCount;
+  const nvrInstall = PRICES.install_nvr;
+  const remoteSetup = PRICES.setup_remote;
+  const cableWork = cableM * PRICES.cable_work;
+
+  let laborTotal = baseInstall + nvrInstall + remoteSetup + cableWork;
+
+  // Apply 8% marketing margin on labor
+  laborTotal = Math.round(laborTotal * 1.08 / 100) * 100; // Round to nearest 100
 
   const equipment = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal;
-  let total = equipment + installTotal;
+  let total = equipment + laborTotal;
 
   // VIP Discount: 5% off if 3+ orders
   if (state.orderCount >= 3) {
@@ -209,9 +233,9 @@ function buildSpec(pkg, area, camType, opts) {
     { name: 'HDD для видеонаблюдения', spec: pkg.id === 'budget' ? '1ТБ — ~7 суток записи' : pkg.id === 'standard' ? '2ТБ — ~14 суток записи' : '4ТБ — ~30 суток записи', price: hddTotal, qty: 1, icon: '💾' },
   ];
   if (opts.soundRecord) items.push({ name: 'Микрофон всенаправленный', spec: 'до 10м, шумоподавление', price: micTotal, qty: camCount <= 4 ? 1 : 2, icon: '🎤' });
-  items.push({ name: 'Монтаж и настройка системы', spec: camCount + ' точек × ' + fmt(PRICES[pkg.install]) + '/точка', price: installTotal, qty: 1, icon: '🔧' });
+  items.push({ name: 'Монтаж и настройка системы', spec: camCount + ' точек + NVR + кабель', price: laborTotal, qty: 1, icon: '🔧' });
 
-  return { items, equipment, installTotal, total, camCount, cableM, pkg };
+  return { items, equipment, laborTotal, total, camCount, cableM, pkg };
 }
 
 // ─── ОФОРМЛЕНИЕ ЗАКАЗА ────────────────────────────────────────────────────────
@@ -294,10 +318,39 @@ function openFullMap() {
 function getAddress(coords) {
   ymaps.geocode(coords).then(function (res) {
     const firstGeoObject = res.geoObjects.get(0);
+    if (!firstGeoObject) {
+        selectedAddress = '';
+        if ($('map-selection-info')) $('map-selection-info').textContent = 'Адрес не найден';
+        return;
+    }
+
+    // Yandex check for address precision
+    const precision = firstGeoObject.properties.get('metaDataProperty.GeocoderMetaData.precision');
+    if (precision === 'other' || precision === 'country') {
+        toast('Слишком неточный адрес. Выберите здание.', 'error');
+        selectedAddress = '';
+        if ($('map-selection-info')) $('map-selection-info').textContent = 'Выберите точный адрес (дом/строение)';
+        return;
+    }
+
     selectedAddress = firstGeoObject.getAddressLine();
     const info = $('map-selection-info');
     if (info) info.textContent = selectedAddress;
   });
+}
+
+async function validateManualAddress(addr) {
+    if (!addr || addr.length < 5) return false;
+    try {
+        const res = await ymaps.geocode(addr);
+        const obj = res.geoObjects.get(0);
+        if (!obj) return false;
+        const precision = obj.properties.get('metaDataProperty.GeocoderMetaData.precision');
+        // Valid if exact house or street (street might be okay but house is better)
+        return ['exact', 'number', 'near', 'range'].includes(precision);
+    } catch (e) {
+        return false;
+    }
 }
 
 function closeFullMap() {
@@ -326,17 +379,17 @@ async function renderAdmin() {
     $('admin-orders-list').innerHTML = orders.map(o => `
       <div class="admin-order-card" style="background:var(--bg-card); padding:12px; border-radius:12px; margin-bottom:10px; border-left:4px solid ${o.status === 'pending' ? 'var(--accent)' : 'var(--accent-2)'}">
         <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <span style="font-weight:bold;">#${o.id}</span>
+          <span style="font-weight:bold;">#${esc(o.id)}</span>
           <span style="font-size:12px; color:var(--text-muted);">${new Date(o.created_at).toLocaleDateString()}</span>
         </div>
-        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${o.full_name || 'Anonymous'} - ${fmt(o.total_price)}</div>
+        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${esc(o.full_name) || 'Anonymous'} - ${fmt(o.total_price)}</div>
         <button onclick="blockUser(${o.user_id})" style="font-size:10px; padding:4px 8px; border-radius:4px; background:#ff4d4d; border:none; color:white; cursor:pointer;">Block User</button>
       </div>
     `).join('');
 
     $('admin-logs-list').innerHTML = logs.map(l => `
       <div class="admin-log-row" style="font-size:12px; color:${l.level === 'error' ? '#ff4d4d' : 'var(--text-secondary)'}; margin-bottom:4px; padding:4px; border-bottom:1px solid var(--glass-border);">
-        [${new Date(l.created_at).toLocaleTimeString()}] ${l.message}
+        [${new Date(l.created_at).toLocaleTimeString()}] ${esc(l.message)}
       </div>
     `).join('');
   } catch (e) {
@@ -381,7 +434,7 @@ async function renderSupport() {
     const messages = await StorageService.apiRequest('/chat');
     $('support-chat-messages').innerHTML = messages.map(m => `
       <div class="chat-msg ${m.sender}" style="align-self: ${m.sender === 'user' ? 'flex-end' : 'flex-start'}; background: ${m.sender === 'user' ? 'var(--accent)' : 'var(--bg-card)'}; color: ${m.sender === 'user' ? 'var(--bg-primary)' : 'white'}; padding: 8px 12px; border-radius: 12px; max-width: 80%; margin-bottom: 10px;">
-        ${m.text}
+        ${esc(m.text)}
       </div>
     `).join('');
     $('support-chat-messages').scrollTo({ top: $('support-chat-messages').scrollHeight });
@@ -635,7 +688,7 @@ function buildAndShowResult() {
       <div class="total-row"><span class="total-label">📷 Камер</span><span class="total-value">${spec.camCount} шт.</span></div>
       <div class="total-row"><span class="total-label">🔌 Кабель</span><span class="total-value">~${spec.cableM} м</span></div>
       <div class="total-row"><span class="total-label">📦 Пакет</span><span class="total-value">${pkg.name}</span></div>
-      <div class="total-row"><span class="total-label">🔧 Монтаж</span><span class="total-value">${fmt(spec.installTotal)}</span></div>
+      <div class="total-row"><span class="total-label">🔧 Работы</span><span class="total-value">${fmt(spec.laborTotal)}</span></div>
       <div class="total-row total-final">
         <span class="total-label">💰 ИТОГО</span>
         <span class="total-value">${fmt(spec.total)}${state.orderCount >= 3 ? ' <span style="font-size:12px;color:var(--accent);">(VIP -5%)</span>' : ''}</span>
@@ -694,13 +747,37 @@ function bindProfile() {
   });
   $('btn-save-profile')?.addEventListener('click', async () => {
     haptic('medium');
+    clearErr(['edit-name', 'edit-phone', 'edit-address']);
+
     const name = $('edit-name')?.value.trim();
-    if (name?.length < 2) { toast('Введите корректное имя', 'error'); return; }
+    const phone = $('edit-phone')?.value.trim();
+    const address = $('edit-address')?.value.trim();
+
+    if (name?.length < 2) {
+        fieldErr('edit-name', 'Введите корректное имя');
+        return;
+    }
+
+    // RU Phone Validation
+    const phoneRegex = /^((\+7|7|8)+([0-9]){10})$/;
+    if (!phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''))) {
+        fieldErr('edit-phone', 'Введите корректный номер российского оператора (+7... или 8...)');
+        return;
+    }
+
+    // Address Validation
+    setLoading($('btn-save-profile'), true);
+    const isAddrValid = await validateManualAddress(address);
+    if (!isAddrValid) {
+        setLoading($('btn-save-profile'), false);
+        fieldErr('edit-address', 'Такого адреса не существует, проверьте правильность ввода');
+        return;
+    }
 
     const profileData = {
       full_name: name,
-      phone: $('edit-phone')?.value.trim() || '',
-      address: $('edit-address')?.value.trim() || '',
+      phone: phone,
+      address: address,
       email: state.user.email
     };
 
@@ -711,6 +788,8 @@ function bindProfile() {
       haptic('success'); toast('Профиль сохранён', 'success');
     } catch (e) {
       toast('Ошибка сохранения: ' + e.message, 'error');
+    } finally {
+        setLoading($('btn-save-profile'), false);
     }
   });
   $('btn-logout')?.addEventListener('click', () => {
@@ -782,7 +861,11 @@ function bindAll() {
   $('btn-map-confirm')?.addEventListener('click', () => {
     if (selectedAddress) {
       const input = $('edit-address');
-      if (input) input.value = selectedAddress;
+      if (input) {
+          input.value = selectedAddress;
+          // Trigger input event to clear potential validation errors
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       closeFullMap();
       haptic('success');
     } else {
