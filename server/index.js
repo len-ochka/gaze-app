@@ -168,48 +168,47 @@ app.get('/api/prices', (req, res) => {
 
 // Submit order
 app.post('/api/orders', authMiddleware, (req, res) => {
-  try {
-    const { id, area, camera_type, package_id, options, spec, total_price } = req.body;
+  const { id, area, camera_type, package_id, options, spec, total_price } = req.body;
 
-    if (!id || !total_price) {
-        return res.status(400).json({ error: 'Missing order data' });
-    }
+  if (!id || !total_price) {
+      return res.status(400).json({ error: 'Missing order data' });
+  }
 
-    db.get('SELECT * FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
-      if (err || !user) return res.status(500).json({ error: 'User not found' });
+  db.get('SELECT * FROM users WHERE tg_id = ?', [req.tgUser.id], async (err, user) => {
+    if (err) return res.status(500).json({ error: 'Database error fetching user' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
-      db.run('INSERT INTO orders (id, user_id, area, camera_type, package_id, options, spec, total_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [id, user.id, area, camera_type, package_id, JSON.stringify(options || {}), JSON.stringify(spec || {}), total_price],
-        async function(err) {
-        if (err) {
+    db.run('INSERT INTO orders (id, user_id, area, camera_type, package_id, options, spec, total_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, user.id, area, camera_type, package_id, JSON.stringify(options || {}), JSON.stringify(spec || {}), total_price],
+      async function(insErr) {
+        if (insErr) {
+          console.error('DB Insert Error:', insErr);
           db.run('INSERT INTO logs (level, message, context) VALUES (?, ?, ?)',
-            ['error', 'Order submission failed, triggering SMTP fallback', JSON.stringify({ error: err.message, orderId: id })]);
+            ['error', 'Order submission failed', JSON.stringify({ error: insErr.message, orderId: id })]);
 
-          await sendEmailFallback(req.body, user);
-          return res.status(500).json({ error: 'Order failed but fallback email sent' });
+          try {
+            await sendEmailFallback(req.body, user);
+            return res.status(500).json({ error: 'Order failed to save but email fallback triggered' });
+          } catch (smtpErr) {
+            return res.status(500).json({ error: 'Fatal error: order failed and email fallback failed' });
+          }
         }
 
-        // Notification text
+        // Async notifications (dont block response)
         const text = `🚀 <b>Новая заявка #${id}</b>\n\nКлиент: ${user.full_name}\nОбъект: ${area}м², ${camera_type}\nПакет: ${package_id}\nСумма: ${total_price} ₽`;
 
-        // Notify user via Bot
-        const notified = await sendTelegramMessage(user.tg_id, text);
+        sendTelegramMessage(user.tg_id, text).catch(e => console.error('Notify user failed:', e));
 
-        // Notify admin via Bot (if different from user)
-        db.get('SELECT tg_id FROM users WHERE role = "admin" LIMIT 1', async (err, admin) => {
+        db.get('SELECT tg_id FROM users WHERE role = "admin" LIMIT 1', (admErr, admin) => {
           if (admin && admin.tg_id !== user.tg_id) {
-            await sendTelegramMessage(admin.tg_id, `ADMIN NOTIFY: ${text}`);
+            sendTelegramMessage(admin.tg_id, `ADMIN NOTIFY: ${text}`).catch(e => console.error('Notify admin failed:', e));
           }
         });
 
-          res.json({ success: true, orderId: id, notified });
-        }
-      );
-    });
-  } catch (globalErr) {
-      console.error('Fatal order error:', globalErr);
-      res.status(500).json({ error: 'Internal server error during order processing' });
-  }
+        res.json({ success: true, orderId: id });
+      }
+    );
+  });
 });
 
 // --- ADMIN ROUTES ---
@@ -304,6 +303,12 @@ app.post('/api/webhook', async (req, res) => {
     }
   }
   res.sendStatus(200);
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err);
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 
 const PORT = process.env.PORT || 3000;

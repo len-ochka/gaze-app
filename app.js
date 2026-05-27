@@ -134,6 +134,16 @@ function setLoading(btn, on) {
 
 function isEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function fieldErr(id, msg) {
   const el = $(id); if (!el) return;
   el.classList.add('error');
@@ -369,17 +379,17 @@ async function renderAdmin() {
     $('admin-orders-list').innerHTML = orders.map(o => `
       <div class="admin-order-card" style="background:var(--bg-card); padding:12px; border-radius:12px; margin-bottom:10px; border-left:4px solid ${o.status === 'pending' ? 'var(--accent)' : 'var(--accent-2)'}">
         <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <span style="font-weight:bold;">#${o.id}</span>
+          <span style="font-weight:bold;">#${esc(o.id)}</span>
           <span style="font-size:12px; color:var(--text-muted);">${new Date(o.created_at).toLocaleDateString()}</span>
         </div>
-        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${o.full_name || 'Anonymous'} - ${fmt(o.total_price)}</div>
+        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${esc(o.full_name) || 'Anonymous'} - ${fmt(o.total_price)}</div>
         <button onclick="blockUser(${o.user_id})" style="font-size:10px; padding:4px 8px; border-radius:4px; background:#ff4d4d; border:none; color:white; cursor:pointer;">Block User</button>
       </div>
     `).join('');
 
     $('admin-logs-list').innerHTML = logs.map(l => `
       <div class="admin-log-row" style="font-size:12px; color:${l.level === 'error' ? '#ff4d4d' : 'var(--text-secondary)'}; margin-bottom:4px; padding:4px; border-bottom:1px solid var(--glass-border);">
-        [${new Date(l.created_at).toLocaleTimeString()}] ${l.message}
+        [${new Date(l.created_at).toLocaleTimeString()}] ${esc(l.message)}
       </div>
     `).join('');
   } catch (e) {
@@ -424,7 +434,7 @@ async function renderSupport() {
     const messages = await StorageService.apiRequest('/chat');
     $('support-chat-messages').innerHTML = messages.map(m => `
       <div class="chat-msg ${m.sender}" style="align-self: ${m.sender === 'user' ? 'flex-end' : 'flex-start'}; background: ${m.sender === 'user' ? 'var(--accent)' : 'var(--bg-card)'}; color: ${m.sender === 'user' ? 'var(--bg-primary)' : 'white'}; padding: 8px 12px; border-radius: 12px; max-width: 80%; margin-bottom: 10px;">
-        ${m.text}
+        ${esc(m.text)}
       </div>
     `).join('');
     $('support-chat-messages').scrollTo({ top: $('support-chat-messages').scrollHeight });
@@ -851,7 +861,11 @@ function bindAll() {
   $('btn-map-confirm')?.addEventListener('click', () => {
     if (selectedAddress) {
       const input = $('edit-address');
-      if (input) input.value = selectedAddress;
+      if (input) {
+          input.value = selectedAddress;
+          // Trigger input event to clear potential validation errors
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       closeFullMap();
       haptic('success');
     } else {
