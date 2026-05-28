@@ -92,6 +92,7 @@ const state = {
   screen: 'auth',
   user: null,
   orderCount: 0,
+  isAuthInProgress: false,
   calc: {
     area: 0,
     cameraType: null,   // outdoor / indoor / mixed
@@ -525,49 +526,89 @@ async function init() {
   });
 }
 
+/**
+ * Основной процесс авторизации и инициализации сессии.
+ * Реализует защищённый вход с автоматическими повторами и переходом в офлайн-режим.
+ */
 async function performAuth() {
+  if (state.isAuthInProgress) return;
+
+  state.isAuthInProgress = true;
   showScreen('auth');
+
   const statusEl = $('auth-status');
   const retryBtn = $('btn-auth-retry');
 
-  if (statusEl) statusEl.textContent = 'ОЖИДАНИЕ АВТОРИЗАЦИИ...';
+  if (statusEl) {
+    statusEl.textContent = 'СИНХРОНИЗАЦИЯ...';
+    statusEl.style.color = 'var(--accent)';
+  }
   if (retryBtn) retryBtn.style.display = 'none';
 
-  // Manual check: if sync takes too long, we show retry anyway
-  const longWaitTimer = setTimeout(() => {
-     if (state.screen === 'auth' && retryBtn) retryBtn.style.display = 'block';
-  }, 5000);
+  // Расширяем приложение на весь экран
+  TelegramService.expand();
+
+  // Резервный таймер UI для предотвращения "бесконечного" ожидания пользователем
+  const uiFallbackTimer = setTimeout(() => {
+    if (state.screen === 'auth' && retryBtn) {
+      retryBtn.style.display = 'block';
+      if (statusEl) {
+        statusEl.textContent = 'СОЕДИНЕНИЕ УСТАНАВЛИВАЕТСЯ...';
+      }
+    }
+  }, 7000);
 
   try {
-    const syncResult = await StorageService.syncUser(3); // 3 retries
-    clearTimeout(longWaitTimer);
+    // 1. Попытка синхронизации с сервером (внутри storage.js 4 попытки с задержкой)
+    const syncResult = await StorageService.syncUser(4);
+    clearTimeout(uiFallbackTimer);
+
     if (syncResult) {
       state.user = syncResult;
       state.orderCount = StorageService.getOrderCount();
 
-      // Update UI based on roles
+      // Настройка прав доступа и интерфейса
       if (state.user?.role === 'admin') $('nav-admin').style.display = 'flex';
       if (state.orderCount > 0) $('nav-support').style.display = 'flex';
 
-      const remotePrices = await StorageService.getPrices();
-      Object.assign(PRICES, remotePrices);
+      // 2. Фоновое обновление цен (не блокирует вход)
+      StorageService.getPrices().then(remotePrices => {
+        if (remotePrices) Object.assign(PRICES, remotePrices);
+      }).catch(() => {});
 
-      showScreen('home');
+      // Успешный вход
+      if (statusEl) statusEl.textContent = 'ГОТОВО';
+      haptic('success');
+      setTimeout(() => showScreen('home'), 500);
     } else {
-      throw new Error('User not found');
+      throw new Error('AUTH_FAILED');
     }
   } catch (e) {
-    console.error('Auth failed:', e);
-    if (statusEl) statusEl.textContent = 'ОШИБКА АВТОРИЗАЦИИ';
+    console.error('[App] Критическая ошибка авторизации:', e);
+    clearTimeout(uiFallbackTimer);
+
+    if (statusEl) {
+      statusEl.textContent = 'ОШИБКА СВЯЗИ';
+      statusEl.style.color = '#ff4d4d';
+    }
     if (retryBtn) retryBtn.style.display = 'block';
 
-    // Fallback to cache if available
+    // 3. Стратегия выживания: пробуем войти через локальный кэш
     const cachedUser = StorageService.getUser();
     if (cachedUser) {
-        state.user = cachedUser;
-        toast('Используется офлайн-режим', 'warning');
-        setTimeout(() => showScreen('home'), 1500);
+      state.user = cachedUser;
+      state.orderCount = StorageService.getOrderCount();
+      toast('Вход выполнен в автономном режиме', 'warning');
+      setTimeout(() => showScreen('home'), 1500);
+    } else {
+      haptic('error');
+      // Если это не TWA и нет кэша - выводим подсказку
+      if (!window.Telegram?.WebApp?.initData) {
+        toast('Пожалуйста, откройте приложение в Telegram', 'error');
+      }
     }
+  } finally {
+    state.isAuthInProgress = false;
   }
 }
 
@@ -933,16 +974,24 @@ function bindProfile() {
   });
   $('btn-logout')?.addEventListener('click', () => {
     haptic('rigid');
+
+    // Полная очистка состояния
     state.user = null;
     state.orderCount = 0;
+    state.isAuthInProgress = false;
     StorageService.clearSession();
 
-    // Reset UI
+    // Сброс элементов интерфейса
     $('nav-admin').style.display = 'none';
     $('nav-support').style.display = 'none';
+    $$('.nav-item').forEach(i => i.classList.remove('active'));
 
     toast('Вы вышли из аккаунта');
-    performAuth();
+
+    // Возврат на экран авторизации с задержкой для плавности
+    setTimeout(() => {
+      performAuth();
+    }, 300);
   });
 }
 

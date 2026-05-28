@@ -1,20 +1,30 @@
 /**
- * Gaze Telegram Web App Service
- * Optimized for robustness and high-performance TWA integration.
+ * Gaze Telegram Web App Service (v2.1)
+ * Оптимизировано для высокой производительности и отказоустойчивости в TWA.
  */
 const TelegramService = (() => {
-  const tg = window.Telegram?.WebApp ?? null;
+  // Безопасное получение объекта WebApp с проверкой на наличие
+  const tg = (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp)
+    ? window.Telegram.WebApp
+    : null;
 
-  // Internal state to track listeners and avoid duplicates
+  // Внутреннее состояние для управления обработчиками событий
   const _state = {
     mainButtonHandler: null,
     backButtonHandler: null,
+    isInitialized: false
   };
 
   /**
-   * Checks if the app is running within the Telegram environment.
+   * Проверяет доступность Telegram WebApp API.
    */
-  const isAvailable = () => !!tg;
+  const isAvailable = () => {
+    if (!tg) {
+      console.warn('[TelegramService] Telegram WebApp API не обнаружен.');
+      return false;
+    }
+    return true;
+  };
 
   /**
    * Checks if the Telegram user data is present.
@@ -22,31 +32,40 @@ const TelegramService = (() => {
   const isTelegramUser = () => !!(tg?.initDataUnsafe?.user);
 
   /**
-   * Configures the WebApp viewport and theme colors.
+   * Инициализирует WebApp, настраивает viewport и цвета темы.
    */
   function ready() {
-    if (!tg) return;
-    tg.ready();
-    tg.expand();
+    if (!isAvailable()) return;
 
-    // Set theme colors for a seamless glassmorphism experience
-    const themeColor = '#080c14';
-    if (tg.setHeaderColor) tg.setHeaderColor(themeColor);
-    if (tg.setBackgroundColor) tg.setBackgroundColor(themeColor);
+    try {
+      tg.ready();
+      tg.expand();
 
-    // Notify about ready state to debug logs
-    console.log('[TelegramService] WebApp is ready and expanded.');
+      // Настройка цветов для эффекта glassmorphism
+      const themeColor = '#080c14';
+      if (tg.setHeaderColor) tg.setHeaderColor(themeColor);
+      if (tg.setBackgroundColor) tg.setBackgroundColor(themeColor);
+
+      _state.isInitialized = true;
+      console.log('[TelegramService] WebApp готов и развернут.');
+    } catch (e) {
+      console.error('[TelegramService] Ошибка при вызове ready():', e);
+    }
   }
 
   /**
-   * Extracts user data from Telegram initDataUnsafe.
+   * Извлекает данные пользователя из initDataUnsafe.
    */
   function getTelegramUser() {
-    if (!isTelegramUser()) return null;
+    if (!isTelegramUser()) {
+      console.warn('[TelegramService] Данные пользователя Telegram отсутствуют.');
+      return null;
+    }
+
     const u = tg.initDataUnsafe.user;
     return {
       name: [u.first_name, u.last_name].filter(Boolean).join(' ') || 'Пользователь',
-      email: `tg_${u.id}@gaze.app`,
+      email: `tg_${u.id}@gaze.app`, // Псевдо-email для обратной совместимости
       phone: '',
       address: '',
       tgId: u.id,
