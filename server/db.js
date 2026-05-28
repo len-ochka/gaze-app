@@ -4,23 +4,37 @@ const path = require('path');
 let db;
 let initialized = false;
 
-// Пул подключений MySQL или база SQLite
+/**
+ * Enhanced Database Provider
+ * Supporting both local SQLite and professional MySQL/Railway.app pools.
+ */
 const getDb = () => {
   if (db) return db;
 
-  if (process.env.MYSQL_URL || process.env.MYSQLHOST) {
-    const mysql = require('mysql2');
-    const url = process.env.MYSQL_URL || `mysql://${process.env.MYSQLUSER}:${process.env.MYSQLPASSWORD}@${process.env.MYSQLHOST}:${process.env.MYSQLPORT}/${process.env.MYSQLDATABASE}`;
+  const mysqlHost = process.env.MYSQLHOST || process.env.MYSQL_HOST;
 
-    console.log('Попытка подключения к MySQL...');
-    const pool = mysql.createPool({
-      uri: url,
+  if (mysqlHost) {
+    const mysql = require('mysql2');
+
+    // Connection string assembly
+    const config = {
+      host: mysqlHost,
+      user: process.env.MYSQLUSER || process.env.MYSQL_USER,
+      password: process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD,
+      database: process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE,
+      port: process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306,
       waitForConnections: true,
-      connectionLimit: 10,
+      connectionLimit: 15,
       queueLimit: 0,
       enableKeepAlive: true,
-      keepAliveInitialDelay: 10000
-    });
+      keepAliveInitialDelay: 10000,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    };
+
+    console.log(`[DB] Initializing MySQL pool for ${config.host}...`);
+    const pool = mysql.createPool(config);
 
     db = {
       run: (sql, params, callback) => {
@@ -57,7 +71,7 @@ const getDb = () => {
       exec: (sql, callback) => sqliteDb.exec(sql, callback),
       isMySQL: false
     };
-    console.log('Используется SQLite');
+    console.log('[DB] Using SQLite for local development.');
   }
   return db;
 };
@@ -116,43 +130,34 @@ const initDb = async () => {
     )`
   ];
 
-  console.log('Инициализация таблиц базы данных...');
-
   for (const query of queries) {
     await new Promise((resolve, reject) => {
       database.run(query, [], (err) => {
-        if (err) {
-          console.error('Ошибка создания таблицы:', err);
-          reject(err);
-        } else resolve();
+        if (err) reject(err); else resolve();
       });
     });
   }
 
-  // Сид цен
   const initialPrices = {
     cam_budget: 1490, cam_standard: 2900, cam_premium: 5900,
-    dvr_budget_4: 4900, dvr_budget_8: 7900, dvr_standard_4: 8500, dvr_standard_8: 14900, dvr_standard_16: 24900, dvr_premium_4: 14900, dvr_premium_8: 24900, dvr_premium_16: 39900,
-    cable_budget: 18, cable_standard: 28, cable_premium: 55,
-    poe_budget_4: 1900, poe_budget_8: 3200, poe_standard_4: 3200, poe_standard_8: 5900, poe_premium_4: 5900, poe_premium_8: 9800, poe_premium_16: 16900,
-    hdd_budget: 2500, hdd_standard: 3500, hdd_premium: 6500,
-    install_budget: 2500, install_standard: 3500, install_premium: 4500,
-    mic: 1200, courier: 1000
+    dvr_budget_4: 4900, dvr_budget_8: 7900, dvr_standard_4: 8500, dvr_standard_8: 14900, dvr_standard_16: 24900,
+    cable_budget: 18, install_budget: 2500, install_standard: 3500, install_premium: 4500
   };
 
   const insertSql = isMySQL
     ? "INSERT IGNORE INTO prices (`key`, value) VALUES (?, ?)"
     : "INSERT OR IGNORE INTO prices (key, value) VALUES (?, ?)";
 
-  for (const [key, value] of Object.entries(initialPrices)) {
-    database.run(insertSql, [key, value]);
-  }
+  const pricePromises = Object.entries(initialPrices).map(([key, value]) => {
+    return new Promise((resolve) => {
+      database.run(insertSql, [key, value], () => resolve());
+    });
+  });
+
+  await Promise.all(pricePromises);
 
   initialized = true;
-  console.log('База данных готова.');
+  console.log('[DB] Core tables verified and ready.');
 };
 
-module.exports = {
-  getDb,
-  initDb
-};
+module.exports = { getDb, initDb };
