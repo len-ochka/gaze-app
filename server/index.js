@@ -179,12 +179,20 @@ app.post('/api/orders', authMiddleware, (req, res) => {
           }
         }
 
-        const text = `🚀 <b>Новая заявка #${id}</b>\n\nКлиент: ${user.full_name}\nОбъект: ${area}м², ${camera_type}\nПакет: ${package_id}\nСумма: ${total_price} ₽`;
+        const text = `🚀 <b>Новая заявка #${id}</b>\n\nКлиент: ${user.full_name}\nТел: ${user.phone || 'не указан'}\nОбъект: ${area}м², ${camera_type}\nПакет: ${package_id}\nСумма: ${total_price} ₽`;
+
+        // Notify the user
         sendTelegramMessage(user.tg_id, text).catch(e => console.error('Notify user failed:', e));
 
-        db.get('SELECT tg_id FROM users WHERE role = "admin" LIMIT 1', (admErr, admin) => {
-          if (admin && admin.tg_id !== user.tg_id) {
-            sendTelegramMessage(admin.tg_id, `ADMIN NOTIFY: ${text}`).catch(e => console.error('Notify admin failed:', e));
+        // Notify ALL admins
+        db.all('SELECT tg_id FROM users WHERE role = "admin"', [], (admErr, admins) => {
+          if (!admErr && admins) {
+            admins.forEach(admin => {
+              if (admin.tg_id) {
+                sendTelegramMessage(admin.tg_id, `🔔 <b>УВЕДОМЛЕНИЕ ДЛЯ АДМИНА</b>\n${text}`)
+                  .catch(e => console.error(`Notify admin ${admin.tg_id} failed:`, e));
+              }
+            });
           }
         });
         res.json({ success: true, orderId: id });

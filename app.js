@@ -506,61 +506,68 @@ function bindSupport() {
 
 // ─── ИНИЦИАЛИЗАЦИЯ ────────────────────────────────────────────────────────────
 async function init() {
-  const tg = window.Telegram?.WebApp;
-  if (tg) {
-    tg.ready();
-    tg.expand();
-    if (tg.setHeaderColor) tg.setHeaderColor('#080c14');
-    if (tg.setBackgroundColor) tg.setBackgroundColor('#080c14');
-  }
-
-  // Очищаем экран загрузки если он завис
-  const authTimeout = setTimeout(() => {
-    if (state.screen === 'auth' || !state.user) {
-       console.log('Auth taking too long, forcing check...');
-       const cachedUser = StorageService.getUser();
-       if (cachedUser) {
-           state.user = cachedUser;
-           showScreen('home');
-       }
-    }
-  }, 3000);
-
-  // Синхронизация с бэкендом
-  try {
-    const syncResult = await StorageService.syncUser();
-    if (syncResult) {
-      state.user = syncResult;
-      state.orderCount = StorageService.getOrderCount();
-      clearTimeout(authTimeout);
-    }
-
-    const remotePrices = await StorageService.getPrices();
-    Object.assign(PRICES, remotePrices);
-  } catch (e) {
-    console.error('Init sync failed', e);
-    // Пытаемся восстановиться из кеша
-    state.user = StorageService.getUser();
-  }
-
-  bindAll();
-
-  if (state.user?.role === 'admin') {
-    const navAdmin = $('nav-admin');
-    if (navAdmin) navAdmin.style.display = 'flex';
-  }
-  if (state.orderCount > 0) {
-    const navSupport = $('nav-support');
-    if (navSupport) navSupport.style.display = 'flex';
-  }
+  TelegramService.ready();
 
   const hasSeenLanding = localStorage.getItem('gaze_seen_landing');
   if (!hasSeenLanding) {
     showScreen('landing');
-  } else if (state.user) {
-    showScreen('home');
   } else {
-    showScreen('auth');
+    // If not first time, start auth process
+    performAuth();
+  }
+
+  bindAll();
+
+  // Listen for retry button
+  $('btn-auth-retry')?.addEventListener('click', () => {
+    haptic('medium');
+    performAuth();
+  });
+}
+
+async function performAuth() {
+  showScreen('auth');
+  const statusEl = $('auth-status');
+  const retryBtn = $('btn-auth-retry');
+
+  if (statusEl) statusEl.textContent = 'ОЖИДАНИЕ АВТОРИЗАЦИИ...';
+  if (retryBtn) retryBtn.style.display = 'none';
+
+  // Manual check: if sync takes too long, we show retry anyway
+  const longWaitTimer = setTimeout(() => {
+     if (state.screen === 'auth' && retryBtn) retryBtn.style.display = 'block';
+  }, 5000);
+
+  try {
+    const syncResult = await StorageService.syncUser(3); // 3 retries
+    clearTimeout(longWaitTimer);
+    if (syncResult) {
+      state.user = syncResult;
+      state.orderCount = StorageService.getOrderCount();
+
+      // Update UI based on roles
+      if (state.user?.role === 'admin') $('nav-admin').style.display = 'flex';
+      if (state.orderCount > 0) $('nav-support').style.display = 'flex';
+
+      const remotePrices = await StorageService.getPrices();
+      Object.assign(PRICES, remotePrices);
+
+      showScreen('home');
+    } else {
+      throw new Error('User not found');
+    }
+  } catch (e) {
+    console.error('Auth failed:', e);
+    if (statusEl) statusEl.textContent = 'ОШИБКА АВТОРИЗАЦИИ';
+    if (retryBtn) retryBtn.style.display = 'block';
+
+    // Fallback to cache if available
+    const cachedUser = StorageService.getUser();
+    if (cachedUser) {
+        state.user = cachedUser;
+        toast('Используется офлайн-режим', 'warning');
+        setTimeout(() => showScreen('home'), 1500);
+    }
   }
 }
 
@@ -926,9 +933,16 @@ function bindProfile() {
   });
   $('btn-logout')?.addEventListener('click', () => {
     haptic('rigid');
-    state.user = null; state.orderCount = 0;
+    state.user = null;
+    state.orderCount = 0;
     StorageService.clearSession();
-    showScreen('auth'); toast('Вы вышли из аккаунта');
+
+    // Reset UI
+    $('nav-admin').style.display = 'none';
+    $('nav-support').style.display = 'none';
+
+    toast('Вы вышли из аккаунта');
+    performAuth();
   });
 }
 
@@ -963,7 +977,11 @@ function bindAll() {
       easing: 'easeInOutQuad',
       complete: () => {
         localStorage.setItem('gaze_seen_landing', 'true');
-        showScreen(state.user ? 'home' : 'auth');
+        if (state.user) {
+          showScreen('home');
+        } else {
+          performAuth();
+        }
       }
     });
   });

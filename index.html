@@ -67,7 +67,8 @@
           </div>
           <h3 style="margin-bottom: 10px;">Вход через Telegram</h3>
           <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">Приложение работает только внутри Telegram Web App для обеспечения безопасности ваших данных.</p>
-          <div style="margin-top: 20px; font-size: 12px; color: var(--accent); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Ожидание авторизации...</div>
+          <div id="auth-status" style="margin-top: 20px; font-size: 12px; color: var(--accent); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Ожидание авторизации...</div>
+          <button id="btn-auth-retry" class="btn btn-secondary" style="display: none; margin-top: 20px; width: 100%;">Повторить вход</button>
         </div>
       </div>
       <div class="auth-footer">
