@@ -4,68 +4,104 @@ const cors = require('cors');
 const crypto = require('crypto');
 const path = require('path');
 const { getDb, initDb } = require('./db');
-
-/**
- * Gaze Backend v2.0
- * Secure, scalable, and optimized for Telegram Mini Apps.
- */
+const nodemailer = require('nodemailer');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
 
+// Инициализация БД перед запуском сервера
 const db = getDb();
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map(id => parseInt(id.trim())).filter(Boolean);
 
-async function sendTelegramMessage(chatId, text) {
-  if (!BOT_TOKEN) return console.warn('[TG] BOT_TOKEN missing');
-  try {
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
-    });
-    return response.ok;
-  } catch (err) {
-    console.error('[TG] Send failed:', err.message);
+/**
+ * Отправляет сообщение в Telegram с поддержкой ретраев для критических уведомлений.
+ */
+async function sendTelegramMessage(chatId, text, retries = 2) {
+  if (!BOT_TOKEN) {
+    console.warn('[TG] BOT_TOKEN missing');
     return false;
+  }
+
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+      });
+      if (response.ok) return true;
+
+      const error = await response.json();
+      console.error(`[TG] Telegram API Error (Attempt ${i+1}):`, error);
+    } catch (err) {
+      console.error(`[TG] Network error (Attempt ${i+1}):`, err.message);
+    }
+    if (i < retries) await new Promise(r => setTimeout(r, 1000));
+  }
+  return false;
+}
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+  port: process.env.SMTP_PORT || 587,
+  auth: {
+    user: process.env.SMTP_USER || 'mock@example.com',
+    pass: process.env.SMTP_PASS || 'password'
+  }
+});
+
+async function sendEmailFallback(orderData, user) {
+  const mailOptions = {
+    from: '"GAZE System" <noreply@gaze.app>',
+    to: 'admin@gaze.app',
+    subject: `FALLBACK: New Order #${orderData.id}`,
+    text: `New order received via fallback mechanism.\n\nOrder ID: ${orderData.id}\nUser: ${user.full_name}\nTotal: ${orderData.total_price}`
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    db.run('INSERT INTO logs (level, message, context) VALUES (?, ?, ?)',
+      ['info', 'SMTP Fallback email sent', JSON.stringify({ orderId: orderData.id })]);
+  } catch (err) {
+    db.run('INSERT INTO logs (level, message, context) VALUES (?, ?, ?)',
+      ['error', 'SMTP Fallback failed', JSON.stringify({ error: err.message, orderId: orderData.id })]);
   }
 }
 
-async function sysLog(level, message, context = {}) {
-  console.log(`[${level.toUpperCase()}] ${message}`, context);
-  db.run('INSERT INTO logs (level, message, context) VALUES (?, ?, ?)',
-    [level, message, JSON.stringify(context)]);
-}
-
 function verifyTelegramWebAppData(initData) {
-  if (!initData || !BOT_TOKEN) return null;
-  try {
-    const urlParams = new URLSearchParams(initData);
-    const hash = urlParams.get('hash');
-    urlParams.delete('hash');
-    urlParams.sort();
-    let dataCheckString = '';
-    for (const [key, value] of urlParams.entries()) {
-      dataCheckString += `${key}=${value}\n`;
-    }
-    dataCheckString = dataCheckString.slice(0, -1);
-    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
-    const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-    if (hmac === hash) return JSON.parse(urlParams.get('user'));
-  } catch (e) {}
+  if (!initData) return null;
+  const urlParams = new URLSearchParams(initData);
+  const hash = urlParams.get('hash');
+  urlParams.delete('hash');
+  urlParams.sort();
+
+  let dataCheckString = '';
+  for (const [key, value] of urlParams.entries()) {
+    dataCheckString += `${key}=${value}\n`;
+  }
+  dataCheckString = dataCheckString.slice(0, -1);
+
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+  const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+  if (hmac === hash) {
+    const user = JSON.parse(urlParams.get('user'));
+    return user;
+  }
   return null;
 }
 
 const authMiddleware = (req, res, next) => {
   const initData = req.headers['x-tg-init-data'];
-  if (!initData && process.env.NODE_ENV === 'development') {
-    req.tgUser = { id: 98765, first_name: 'Dev', last_name: 'Admin' };
-    return next();
-  }
   const user = verifyTelegramWebAppData(initData);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   req.tgUser = user;
@@ -79,26 +115,33 @@ const adminMiddleware = (req, res, next) => {
   });
 };
 
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
 app.post('/api/auth/sync', authMiddleware, (req, res) => {
   const { id, username, first_name, last_name } = req.tgUser;
-  const fullName = [first_name, last_name].filter(Boolean).join(' ') || 'Пользователь';
+  const fullName = [first_name, last_name].filter(Boolean).join(' ');
   const isAdminById = ADMIN_IDS.includes(id);
 
   db.get('SELECT u.*, (SELECT COUNT(*) FROM orders WHERE user_id = u.id) as order_count FROM users u WHERE u.tg_id = ?', [id], (err, user) => {
     if (err) return res.status(500).json({ error: err.message });
+
     if (!user) {
       db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
-        let role = (!err && row.count === 0) || isAdminById ? 'admin' : 'user';
+        const isFirst = !err && row.count === 0;
+        let role = (isFirst || isAdminById) ? 'admin' : 'user';
+
         db.run('INSERT INTO users (tg_id, username, full_name, role) VALUES (?, ?, ?, ?)',
           [id, username, fullName, role],
           function(err) {
             if (err) return res.status(500).json({ error: err.message });
-            db.get('SELECT * FROM users WHERE id = ?', [this.lastID], (err, newUser) => res.json(newUser));
+            db.get('SELECT * FROM users WHERE id = ?', [this.lastID], (err, newUser) => {
+              res.json(newUser);
+            });
           }
         );
       });
     } else {
-      if (user.is_blocked) return res.status(403).json({ error: 'Blocked', reason: user.block_reason });
+      if (user.is_blocked) return res.status(403).json({ error: 'User is blocked', reason: user.block_reason });
       if (isAdminById && user.role !== 'admin') {
           db.run('UPDATE users SET role = "admin" WHERE tg_id = ?', [id]);
           user.role = 'admin';
@@ -108,94 +151,167 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
   });
 });
 
+app.put('/api/user/profile', authMiddleware, (req, res) => {
+  const { full_name, email, phone, address } = req.body;
+  db.run('UPDATE users SET full_name = ?, email = ?, phone = ?, address = ? WHERE tg_id = ?',
+    [full_name, email, phone, address, req.tgUser.id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true });
+    }
+  );
+});
+
+app.get('/api/prices', (req, res) => {
+  db.all('SELECT * FROM prices', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    const prices = {};
+    rows.forEach(r => prices[r.key] = r.value);
+    res.json(prices);
+  });
+});
+
 app.post('/api/orders', authMiddleware, (req, res) => {
-  const { id, area, total_price, spec } = req.body;
-  db.get('SELECT * FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
+  const { id, area, camera_type, package_id, options, spec, total_price } = req.body;
+  if (!id || !total_price) return res.status(400).json({ error: 'Missing order data' });
+
+  db.get('SELECT * FROM users WHERE tg_id = ?', [req.tgUser.id], async (err, user) => {
+    if (err) return res.status(500).json({ error: 'Database error fetching user' });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    db.run('INSERT INTO orders (id, user_id, area, total_price, spec) VALUES (?, ?, ?, ?, ?)',
-      [id, user.id, area, total_price, JSON.stringify(spec)],
-      async function(err) {
-        if (err) return res.status(500).json({ error: 'Order failed' });
-        const text = `🚀 <b>ЗАЯВКА #${id}</b>\n\n👤 ${user.full_name}\n📞 ${user.phone || '—'}\n📐 ${area}м²\n💰 ${total_price} ₽`;
+
+    db.run('INSERT INTO orders (id, user_id, area, camera_type, package_id, options, spec, total_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, user.id, area, camera_type, package_id, JSON.stringify(options || {}), JSON.stringify(spec || {}), total_price],
+      async function(insErr) {
+        if (insErr) {
+          db.run('INSERT INTO logs (level, message, context) VALUES (?, ?, ?)',
+            ['error', 'Order submission failed', JSON.stringify({ error: insErr.message, orderId: id })]);
+          try {
+            await sendEmailFallback(req.body, user);
+            return res.status(500).json({ error: 'Order failed to save but email fallback triggered' });
+          } catch (smtpErr) {
+            return res.status(500).json({ error: 'Fatal error: order failed and email fallback failed' });
+          }
+        }
+
+        const text = `🚀 <b>НОВАЯ ЗАЯВКА #${id}</b>\n\n👤 Клиент: ${user.full_name}\n📞 Тел: <code>${user.phone || 'не указан'}</code>\n📍 Адрес: ${user.address || 'не указан'}\n📐 Площадь: ${area} м²\n💰 Сумма: <b>${total_price} ₽</b>`;
+
+        // Подтверждение пользователю
         sendTelegramMessage(user.tg_id, text);
+
+        // Уведомление админов
         db.all('SELECT tg_id FROM users WHERE role = "admin"', [], (err, admins) => {
-          if (!err && admins) admins.forEach(a => sendTelegramMessage(a.tg_id, `🔔 ADMIN: ${text}`));
+          if (!err && admins) {
+            admins.forEach(a => {
+              if (a.tg_id !== user.tg_id) {
+                sendTelegramMessage(a.tg_id, `🔔 <b>ADMIN ALERT</b>\n${text}`);
+              }
+            });
+          }
         });
+
         res.json({ success: true, orderId: id });
       }
     );
   });
 });
 
-app.get('/api/prices', (req, res) => {
-  db.all('SELECT * FROM prices', [], (err, rows) => {
-    const p = {}; rows?.forEach(r => p[r.key] = r.value);
-    res.json(p);
-  });
-});
-
-app.put('/api/user/profile', authMiddleware, (req, res) => {
-  const { full_name, phone, address } = req.body;
-  db.run('UPDATE users SET full_name = ?, phone = ?, address = ? WHERE tg_id = ?',
-    [full_name, phone, address, req.tgUser.id], (err) => res.json({ success: !err }));
-});
-
-app.get('/api/chat', authMiddleware, (req, res) => {
-  db.all('SELECT * FROM messages WHERE user_id = (SELECT id FROM users WHERE tg_id = ?) ORDER BY created_at ASC', [req.tgUser.id], (err, rows) => res.json(rows || []));
-});
-
-app.post('/api/chat', authMiddleware, (req, res) => {
-  const { text } = req.body;
-  if (!text) return res.status(400).json({ error: 'Text required' });
-
-  db.get('SELECT id FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    db.run('INSERT INTO messages (user_id, sender, text) VALUES (?, ?, ?)', [user.id, 'user', text], (err) => {
-      if (err) return res.status(500).json({ error: 'Failed to save message' });
-      sysLog('info', `New message from user ${user.id}`, { text });
-      res.json({ success: true });
-    });
-  });
-});
-
-// --- ADMIN ENDPOINTS ---
-
 app.get('/api/admin/orders', authMiddleware, adminMiddleware, (req, res) => {
-  db.all('SELECT o.*, u.full_name, u.phone FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC', [], (err, rows) => res.json(rows));
-});
-
-app.get('/api/admin/users', authMiddleware, adminMiddleware, (req, res) => {
-  db.all('SELECT *, (SELECT COUNT(*) FROM orders WHERE user_id = users.id) as order_count FROM users ORDER BY created_at DESC', [], (err, rows) => res.json(rows));
+  db.all('SELECT o.*, u.full_name FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
 });
 
 app.get('/api/admin/logs', authMiddleware, adminMiddleware, (req, res) => {
-  db.all('SELECT * FROM logs ORDER BY created_at DESC LIMIT 100', [], (err, rows) => res.json(rows));
+  db.all('SELECT * FROM logs ORDER BY created_at DESC LIMIT 100', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
 });
 
 app.post('/api/admin/prices', authMiddleware, adminMiddleware, (req, res) => {
-  const data = req.body;
-  // Handle both single update {key, value} and batch update {key: value}
-  const updates = data.key ? { [data.key]: data.value } : data;
+  const { key, value } = req.body;
+  const sql = db.isMySQL
+    ? 'REPLACE INTO prices (`key`, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)'
+    : 'INSERT OR REPLACE INTO prices (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)';
 
-  const promises = Object.entries(updates).map(([key, value]) => {
-    return new Promise((resolve) => {
-      db.run('UPDATE prices SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE `key` = ?', [value, key], () => resolve());
-    });
-  });
-  Promise.all(promises).then(() => {
-    sysLog('info', 'Prices updated by admin', { updates });
+  db.run(sql, [key, value], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });
   });
 });
 
 app.post('/api/admin/users/block', authMiddleware, adminMiddleware, (req, res) => {
-  const { userId, isBlocked = true, reason } = req.body;
-  db.run('UPDATE users SET is_blocked = ?, block_reason = ? WHERE id = ?', [isBlocked ? 1 : 0, reason, userId], (err) => {
+  const { userId, reason } = req.body;
+  db.run('UPDATE users SET is_blocked = 1, block_reason = ? WHERE id = ?', [reason, userId], (err) => {
     if (err) return res.status(500).json({ error: err.message });
-    sysLog('warn', `User ${userId} block status changed to ${isBlocked}`, { reason });
     res.json({ success: true });
   });
 });
 
+app.get('/api/chat', authMiddleware, (req, res) => {
+  db.get('SELECT id FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
+    if (err || !user) return res.status(404).json({ error: 'User not found' });
+    db.all('SELECT * FROM messages WHERE user_id = ? ORDER BY created_at ASC', [user.id], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  });
+});
+
+app.post('/api/chat', authMiddleware, (req, res) => {
+  const { text } = req.body;
+  db.get('SELECT id FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
+    if (err || !user) return res.status(404).json({ error: 'User not found' });
+    db.run('INSERT INTO messages (user_id, sender, text) VALUES (?, ?, ?)', [user.id, 'user', text], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      setTimeout(() => {
+        db.run('INSERT INTO messages (user_id, sender, text) VALUES (?, ?, ?)',
+          [user.id, 'admin', 'Спасибо за обращение! Наш специалист ответит вам в ближайшее время.'], () => {});
+      }, 1000);
+      res.json({ success: true });
+    });
+  });
+});
+
+app.post('/api/webhook', async (req, res) => {
+  const update = req.body;
+  if (update.message && update.message.text === '/start') {
+    const chatId = update.message.chat.id;
+    const text = `👋 <b>Добро пожаловать в GAZE!</b>\n\nМы поможем вам подобрать и рассчитать профессиональную систему видеонаблюдения за 2 минуты.\n\nНажмите кнопку ниже, чтобы запустить конструктор:`;
+    const appUrl = process.env.APP_URL || 'https://t.me/your_bot_username/app';
+
+    try {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: text,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [[{ text: '🚀 Запустить GAZE', web_app: { url: appUrl } }]]
+          }
+        })
+      });
+    } catch (e) {
+      console.error('Webhook error:', e);
+    }
+  }
+  res.sendStatus(200);
+});
+
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err);
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
+});
+
 const PORT = process.env.PORT || 3000;
-initDb().then(() => app.listen(PORT, '0.0.0.0', () => console.log(`Server running on ${PORT}`)));
+
+// Гарантированная инициализация перед прослушиванием порта
+initDb().then(() => {
+  app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+}).catch(err => {
+  console.error('КРИТИЧЕСКАЯ ОШИБКА: База данных не инициализирована!', err);
+  process.exit(1);
+});

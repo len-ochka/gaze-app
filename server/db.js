@@ -22,12 +22,13 @@ const getDb = () => {
       user: process.env.MYSQLUSER || process.env.MYSQL_USER,
       password: process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD,
       database: process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE,
-      port: process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306,
+      port: parseInt(process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306),
       waitForConnections: true,
-      connectionLimit: 15,
+      connectionLimit: 20, // Увеличено для стабильности под нагрузкой
       queueLimit: 0,
       enableKeepAlive: true,
       keepAliveInitialDelay: 10000,
+      connectTimeout: 10000, // Таймаут соединения для Railway
       ssl: {
         rejectUnauthorized: false
       }

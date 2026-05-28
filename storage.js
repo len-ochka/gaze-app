@@ -15,9 +15,9 @@ const StorageService = (() => {
   }
 
   /**
-   * Generic API request with timeout and Telegram headers.
+   * Универсальный метод для API запросов с таймаутом и заголовками Telegram.
    */
-  async function apiRequest(endpoint, method = 'GET', body = null, timeout = 10000) {
+  async function apiRequest(endpoint, method = 'GET', body = null, timeout = 15000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
 
@@ -67,25 +67,38 @@ const StorageService = (() => {
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
   /**
-   * Synchronizes user state with the backend with retries.
+   * Синхронизация состояния пользователя с бэкендом с механизмом повторов.
    */
-  async function syncUser(retries = 3) {
+  async function syncUser(retries = 4) {
     for (let i = 0; i < retries; i++) {
       try {
-        const user = await apiRequest('/auth/sync', 'POST', null, 8000); // Shorter timeout for sync
-        set('user', user);
-        if (user.order_count !== undefined) {
-          set('order_count', user.order_count);
+        console.log(`[StorageService] Попытка синхронизации ${i + 1}...`);
+        const user = await apiRequest('/auth/sync', 'POST', null, 10000);
+
+        if (user) {
+          set('user', user);
+          if (user.order_count !== undefined) {
+            set('order_count', user.order_count);
+          }
+          console.log('[StorageService] Синхронизация успешна.');
+          return user;
         }
-        return user;
+        throw new Error('Пустой ответ от сервера');
       } catch (e) {
-        console.warn(`[StorageService] Sync attempt ${i + 1} failed:`, e.message);
+        console.warn(`[StorageService] Попытка ${i + 1} не удалась:`, e.message);
+
         if (i === retries - 1) {
-          // If all retries failed, try to use cached data
-          return get('user');
+          const cachedUser = get('user');
+          if (cachedUser) {
+            console.log('[StorageService] Используются кэшированные данные пользователя.');
+            return cachedUser;
+          }
+          throw e;
         }
-        // Exponential backoff
-        await sleep(1000 * Math.pow(2, i));
+
+        // Экспоненциальная задержка с джиттером
+        const delay = (1000 * Math.pow(2, i)) + (Math.random() * 1000);
+        await sleep(delay);
       }
     }
   }
