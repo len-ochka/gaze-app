@@ -1,8 +1,42 @@
 const StorageService = (() => {
   const PREFIX = 'gaze_';
+  // If we are on localhost, use the local port 3000.
+  // Otherwise, assume the API is served from the same host under /api
+  const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:3000/api'
+    : window.location.origin + '/api';
 
   function _key(name) {
     return PREFIX + name;
+  }
+
+  async function apiRequest(endpoint, method = 'GET', body = null) {
+    const initData = window.TelegramService?.getInitData() || '';
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-tg-init-data': initData
+    };
+    const options = { method, headers };
+    if (body) options.body = JSON.stringify(body);
+
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, options);
+      if (!response.ok) {
+        let errorMsg = 'API Request failed';
+        try {
+          const err = await response.json();
+          errorMsg = err.error || errorMsg;
+        } catch (parseErr) {}
+        throw new Error(errorMsg);
+      }
+      return await response.json();
+    } catch (e) {
+      console.error(`[StorageService] API Error (${endpoint}):`, e);
+      if (e.message === 'Failed to fetch') {
+        throw new Error('Сервер недоступен. Проверьте подключение или API_URL.');
+      }
+      throw e;
+    }
   }
 
   function get(name, defaultValue = null) {
@@ -32,53 +66,45 @@ const StorageService = (() => {
     } catch (e) {}
   }
 
-  function validateUser(obj) {
-    if (!obj || typeof obj !== 'object') return null;
-    return {
-      name: typeof obj.name === 'string' ? obj.name : '',
-      email: typeof obj.email === 'string' ? obj.email : '',
-      phone: typeof obj.phone === 'string' ? obj.phone : '',
-      address: typeof obj.address === 'string' ? obj.address : '',
-      tgId: obj.tgId ?? null,
-      tgUsername: obj.tgUsername ?? null
-    };
+  async function syncUser() {
+    try {
+      const user = await apiRequest('/auth/sync', 'POST');
+      set('user', user);
+      if (user.order_count !== undefined) {
+        set('order_count', user.order_count);
+      }
+      return user;
+    } catch (e) {
+      return get('user');
+    }
   }
 
-  function validateCartItems(arr) {
-    if (!Array.isArray(arr)) return [];
-    return arr.filter(item =>
-      item &&
-      typeof item.id === 'string' &&
-      typeof item.name === 'string' &&
-      typeof item.price === 'number' &&
-      typeof item.qty === 'number' &&
-      item.qty > 0
-    );
+  async function updateUserProfile(profile) {
+    await apiRequest('/user/profile', 'PUT', profile);
+    const currentUser = get('user') || {};
+    const updatedUser = { ...currentUser, ...profile };
+    set('user', updatedUser);
+    return updatedUser;
+  }
+
+  async function getPrices() {
+    try {
+      const prices = await apiRequest('/prices');
+      set('prices', prices);
+      return prices;
+    } catch (e) {
+      return get('prices', {});
+    }
+  }
+
+  async function submitOrder(orderData) {
+    const result = await apiRequest('/orders', 'POST', orderData);
+    incrementOrderCount();
+    return result;
   }
 
   function getUser() {
-    return validateUser(get('user'));
-  }
-
-  function setUser(user) {
-    return set('user', user);
-  }
-
-  function getCart() {
-    return validateCartItems(get('cart', []));
-  }
-
-  function setCart(items) {
-    return set('cart', items);
-  }
-
-  function getAccounts() {
-    const data = get('accounts', {});
-    return typeof data === 'object' && data !== null ? data : {};
-  }
-
-  function setAccounts(accounts) {
-    return set('accounts', accounts);
+    return get('user');
   }
 
   function getOrderCount() {
@@ -99,18 +125,14 @@ const StorageService = (() => {
   }
 
   return {
-    get,
-    set,
-    remove,
+    syncUser,
+    updateUserProfile,
+    getPrices,
+    submitOrder,
     getUser,
-    setUser,
-    getCart,
-    setCart,
-    getAccounts,
-    setAccounts,
     getOrderCount,
-    incrementOrderCount,
-    clearSession
+    clearSession,
+    apiRequest
   };
 })();
 

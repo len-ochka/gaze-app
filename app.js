@@ -1,12 +1,5 @@
 'use strict';
 
-// ─── КОНФИГУРАЦИЯ БОТА ────────────────────────────────────────────────────────
-const BOT_TOKEN = '8803611894:AAG7qg9at-il3Ra7EEhoy3df5Yp0kuOQaJQ';
-const ADMIN_CHAT = '@neznnezn';
-// Числовой chat_id администратора — получим при первом запросе через getUpdates
-// Пока используем username, бот сам найдёт id после первого сообщения
-let ADMIN_CHAT_ID = null;
-
 // ─── ПРАЙС-ЛИСТ ───────────────────────────────────────────────────────────────
 const PRICES = {
   // Камеры
@@ -43,14 +36,18 @@ const PRICES = {
   hdd_standard: 3500,  // 2ТБ
   hdd_premium: 6500,   // 4ТБ
 
-  // Монтаж (за точку)
-  install_budget:   1500,
-  install_standard: 2500,
-  install_premium:  4000,
+  // Монтаж (за точку) - Московские цены 2026
+  install_budget:   2500,   // Базовый (внутренние)
+  install_standard: 3500,   // Стандартный (уличные до 3м)
+  install_premium:  4500,   // Высотный/Сложный (>3м)
+
+  install_nvr: 3000,        // Монтаж и настройка NVR
+  setup_remote: 1500,       // Удаленный доступ
 
   // Дополнительно
-  mic: 890,
-  courier: 500
+  cable_work: 100,          // Прокладка кабеля за метр
+  mic: 1200,
+  courier: 1000
 };
 
 // ─── ПАКЕТЫ ───────────────────────────────────────────────────────────────────
@@ -137,6 +134,16 @@ function setLoading(btn, on) {
 
 function isEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function fieldErr(id, msg) {
   const el = $(id); if (!el) return;
   el.classList.add('error');
@@ -157,27 +164,19 @@ function clearErr(ids) {
 
 // ─── РАСЧЁТ КАМЕР ПО ПЛОЩАДИ ─────────────────────────────────────────────────
 function calcCamerasForArea(area, type) {
-  // Формулы:
-  // Внутри: 1 камера на ~20м² (угол 104°, высота 2.7м → покрытие ~18-22м²)
-  // Снаружи: 1 камера на ~60м периметра
-  // Смешанный: считаем как внутренние
   let count;
   if (type === 'outdoor') {
-    // Периметр ≈ 4 * sqrt(area) для квадратного объекта
     const perimeter = 4 * Math.sqrt(area);
-    count = Math.ceil(perimeter / 15); // камера перекрывает ~15м
+    count = Math.ceil(perimeter / 15);
   } else {
     count = Math.ceil(area / 20);
   }
-  // Минимум 2, максимум 16
   return Math.min(16, Math.max(2, count));
 }
 
 function calcCableForArea(area, camCount, type) {
-  // Среднее расстояние от камеры до регистратора
-  // = sqrt(площадь) / 2 * 1.3 (запас на трассировку)
   const avgDist = Math.ceil(Math.sqrt(area) / 2 * 1.3);
-  return avgDist * camCount + 10; // +10м запас
+  return avgDist * camCount + 10;
 }
 
 function getDvrKey(pkg, count) {
@@ -204,10 +203,25 @@ function buildSpec(pkg, area, camType, opts) {
   const poeTotal = PRICES[poeKey] || 0;
   const hddTotal = PRICES[pkg.hdd];
   const micTotal = opts.soundRecord ? PRICES.mic * (camCount <= 4 ? 1 : 2) : 0;
-  const installTotal = PRICES[pkg.install] * camCount;
+
+  // Labor calculation with Moscow rates & margin
+  const baseInstall = PRICES[pkg.install] * camCount;
+  const nvrInstall = PRICES.install_nvr;
+  const remoteSetup = PRICES.setup_remote;
+  const cableWork = cableM * PRICES.cable_work;
+
+  let laborTotal = baseInstall + nvrInstall + remoteSetup + cableWork;
+
+  // Применяем маржу 8% на работы и округляем до 100 рублей
+  laborTotal = Math.round((laborTotal * 1.08) / 100) * 100;
 
   const equipment = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal;
-  const total = equipment + installTotal;
+  let total = equipment + laborTotal;
+
+  // VIP Discount: 5% off if 3+ orders
+  if (state.orderCount >= 3) {
+    total = Math.round(total * 0.95);
+  }
 
   const chCount = camCount <= 4 ? '4-канальный' : camCount <= 8 ? '8-канальный' : '16-канальный';
 
@@ -219,154 +233,409 @@ function buildSpec(pkg, area, camType, opts) {
     { name: 'HDD для видеонаблюдения', spec: pkg.id === 'budget' ? '1ТБ — ~7 суток записи' : pkg.id === 'standard' ? '2ТБ — ~14 суток записи' : '4ТБ — ~30 суток записи', price: hddTotal, qty: 1, icon: '💾' },
   ];
   if (opts.soundRecord) items.push({ name: 'Микрофон всенаправленный', spec: 'до 10м, шумоподавление', price: micTotal, qty: camCount <= 4 ? 1 : 2, icon: '🎤' });
-  items.push({ name: 'Монтаж и настройка системы', spec: camCount + ' точек × ' + fmt(PRICES[pkg.install]) + '/точка', price: installTotal, qty: 1, icon: '🔧' });
+  items.push({ name: 'Монтаж и настройка системы', spec: camCount + ' точек + NVR + кабель', price: laborTotal, qty: 1, icon: '🔧' });
 
-  return { items, equipment, installTotal, total, camCount, cableM, pkg };
+  return { items, equipment, laborTotal, total, camCount, cableM, pkg };
 }
 
-// ─── ОТПРАВКА В TELEGRAM ─────────────────────────────────────────────────────
-async function sendOrderToTelegram(orderData) {
-  // Сначала получаем chat_id администратора если не знаем
-  if (!ADMIN_CHAT_ID) {
-    try {
-      const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=50`);
-      const d = await r.json();
-      if (d.ok && d.result) {
-        for (const upd of d.result) {
-          const msg = upd.message || upd.channel_post;
-          if (msg && msg.from && msg.chat) {
-            // ищем сообщение от @neznnezn
-            if (msg.from.username === 'neznnezn' || msg.chat.username === 'neznnezn') {
-              ADMIN_CHAT_ID = msg.chat.id;
-              break;
-            }
-          }
-        }
-      }
-    } catch (_) {}
-    // Если не нашли — используем username напрямую (sendMessage поддерживает @username)
-    if (!ADMIN_CHAT_ID) ADMIN_CHAT_ID = ADMIN_CHAT;
+// ─── ОФОРМЛЕНИЕ ЗАКАЗА ────────────────────────────────────────────────────────
+async function doOrder() {
+  if (!state.user) { toast('Войдите в аккаунт', 'error'); return; }
+  if (!state.user.phone) {
+    haptic('error');
+    toast('Укажите телефон в профиле для связи', 'error');
+    setTimeout(() => showScreen('profile'), 1500);
+    return;
   }
 
-  const spec = orderData.spec;
-  const u = orderData.user;
-  const pkg = spec.pkg;
+  const btn = $('btn-calc3-order');
+  setLoading(btn, true);
 
-  const itemLines = spec.items.map(i =>
-    `  ${i.icon} ${i.name} × ${i.qty} — ${fmt(i.price)}`
-  ).join('\n');
+  const orderId = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const orderData = {
+    id: orderId,
+    area: state.calc.area,
+    camera_type: state.calc.cameraType,
+    package_id: state.calc.package,
+    options: { soundRecord: state.calc.soundRecord, motionDetect: state.calc.motionDetect },
+    spec: state.calc.result,
+    total_price: state.calc.result.total
+  };
 
-  const typeLabel = {
-    outdoor: '🏢 Уличные',
-    indoor: '🏠 Внутренние',
-    mixed: '🏗 Смешанные'
-  }[orderData.cameraType] || '';
+  try {
+    await StorageService.submitOrder(orderData);
+    haptic('success');
+    setLoading(btn, false);
+    state.orderCount = StorageService.getOrderCount();
 
-  const text = `
-🔔 *НОВАЯ ЗАЯВКА НА УСТАНОВКУ*
-━━━━━━━━━━━━━━━━━━━━
-📋 *Заказ:* \`#${orderData.id}\`
-🕐 *Время:* ${new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}
+    if (state.orderCount > 0) {
+        $('nav-support').style.display = 'flex';
+    }
 
-👤 *Клиент:*
-  • Имя: ${u.name || '—'}
-  • Телефон: ${u.phone || '—'}
-  • Email: ${u.email || '—'}
-  • Адрес объекта: ${u.address || '—'}
+    // Показываем экран успеха
+    $('order-id-display').textContent = '#' + orderId;
+  const successEl = $('order-success');
+  successEl.classList.add('show');
+    $$('.calc-step').forEach(s => s.classList.remove('active'));
 
-📐 *Параметры объекта:*
-  • Площадь: ${orderData.area} м²
-  • Тип размещения: ${typeLabel}
-  • Расчётное кол-во камер: ${spec.camCount} шт.
-  • Длина трассы: ~${spec.cableM} м
-
-📦 *Пакет:* ${pkg.name} ${pkg.badge}
-
-🛒 *Спецификация:*
-${itemLines}
-
-💰 *Стоимость:*
-  • Оборудование: ${fmt(spec.equipment)}
-  • Монтаж: ${fmt(spec.installTotal)}
-  • *Итого: ${fmt(spec.total)}*
-${orderData.opts.soundRecord ? '\n🎤 Запись звука: ✅' : ''}${orderData.opts.motionDetect ? '\n🤖 AI-детекция: ✅' : ''}
-━━━━━━━━━━━━━━━━━━━━
-`.trim();
-
-  const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: ADMIN_CHAT_ID,
-      text,
-      parse_mode: 'Markdown'
-    })
+  anime({
+    targets: successEl,
+    scale: [0.8, 1],
+    opacity: [0, 1],
+    duration: 800,
+    easing: 'easeOutElastic(1, .6)'
   });
-  const result = await resp.json();
-  if (!result.ok) throw new Error(result.description);
-  return true;
+
+  anime({
+    targets: successEl.querySelector('.success-icon'),
+    rotate: '1turn',
+    duration: 1000,
+    easing: 'easeInOutBack'
+  });
+
+  } catch (err) {
+    haptic('error');
+    setLoading(btn, false);
+    toast('Ошибка отправки: ' + err.message, 'error');
+    console.error('Order error:', err);
+  }
+}
+
+// ─── YANDEX MAPS ──────────────────────────────────────────────────────────────
+let myMap;
+let selectedAddress = '';
+
+function openFullMap() {
+  const modal = $('full-map-view');
+  if (modal) modal.style.display = 'block';
+  haptic('light');
+
+  const currentAddr = $('edit-address')?.value;
+
+  if (!window.ymaps) return;
+  window.ymaps.ready(() => {
+    if (!myMap) {
+      myMap = new ymaps.Map("big-map", {
+        center: [55.76, 37.64],
+        zoom: 11,
+        controls: ['zoomControl', 'geolocationControl']
+      });
+
+      myMap.events.add('click', function (e) {
+        const coords = e.get('coords');
+        myMap.geoObjects.removeAll();
+        myMap.geoObjects.add(new ymaps.Placemark(coords));
+        getAddress(coords);
+      });
+    } else {
+      myMap.container.fitToViewport();
+    }
+
+    // Если адрес уже введен, центрируем карту на нем
+    if (currentAddr && currentAddr.length > 5) {
+      ymaps.geocode(currentAddr).then(res => {
+        const obj = res.geoObjects.get(0);
+        if (obj) {
+          const coords = obj.geometry.getCoordinates();
+          myMap.setCenter(coords, 16);
+          myMap.geoObjects.removeAll();
+          myMap.geoObjects.add(new ymaps.Placemark(coords));
+          selectedAddress = obj.getAddressLine();
+          if ($('map-selection-info')) $('map-selection-info').textContent = selectedAddress;
+        }
+      });
+    }
+  });
+}
+
+function getAddress(coords) {
+  ymaps.geocode(coords).then(function (res) {
+    const firstGeoObject = res.geoObjects.get(0);
+    if (!firstGeoObject) {
+      selectedAddress = '';
+      if ($('map-selection-info')) $('map-selection-info').textContent = 'Адрес не найден';
+      return;
+    }
+
+    selectedAddress = firstGeoObject.getAddressLine();
+    const info = $('map-selection-info');
+    if (info) info.textContent = selectedAddress;
+
+    // Сразу обновляем стейт и поле, чтобы не потерять выбор
+    const input = $('edit-address');
+    if (input) {
+      input.value = selectedAddress;
+      input.classList.remove('error');
+    }
+  });
+}
+
+async function validateManualAddress(addr) {
+  if (!addr || addr.length < 5) return false;
+  if (!window.ymaps) return true; // Fail-safe
+  try {
+    const res = await ymaps.geocode(addr);
+    const obj = res.geoObjects.get(0);
+    if (!obj) return false;
+    // Если объект найден и это хотя бы улица или здание - считаем валидным
+    const meta = obj.properties.get('metaDataProperty.GeocoderMetaData');
+    const kind = meta.kind;
+    return ['house', 'street', 'district', 'locality'].includes(kind);
+  } catch (e) {
+    return true; // В случае ошибки API не блокируем пользователя
+  }
+}
+
+function closeFullMap() {
+  const modal = $('full-map-view');
+  if (modal) modal.style.display = 'none';
+}
+
+// ─── ADMIN ────────────────────────────────────────────────────────────────────
+async function renderAdmin() {
+  if (state.user?.role !== 'admin') {
+    showScreen('home');
+    return;
+  }
+  try {
+    const orders = await StorageService.apiRequest('/admin/orders');
+    const logs = await StorageService.apiRequest('/admin/logs');
+    const prices = await StorageService.getPrices();
+
+    $('admin-prices-list').innerHTML = Object.entries(prices).map(([key, val]) => `
+      <div class="admin-price-row" style="display:flex; justify-content:space-between; margin-bottom:8px; background:var(--bg-card); padding:10px; border-radius:8px;">
+        <span style="font-size:14px;">${key}</span>
+        <input type="number" value="${val}" onchange="updatePrice('${key}', this.value)" style="width:80px; background:transparent; color:white; border:1px solid var(--glass-border); border-radius:4px; text-align:right;">
+      </div>
+    `).join('');
+
+    $('admin-orders-list').innerHTML = orders.map(o => `
+      <div class="admin-order-card" style="background:var(--bg-card); padding:12px; border-radius:12px; margin-bottom:10px; border-left:4px solid ${o.status === 'pending' ? 'var(--accent)' : 'var(--accent-2)'}">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span style="font-weight:bold;">#${esc(o.id)}</span>
+          <span style="font-size:12px; color:var(--text-muted);">${new Date(o.created_at).toLocaleDateString()}</span>
+        </div>
+        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${esc(o.full_name) || 'Anonymous'} - ${fmt(o.total_price)}</div>
+        <button onclick="blockUser(${o.user_id})" style="font-size:10px; padding:4px 8px; border-radius:4px; background:#ff4d4d; border:none; color:white; cursor:pointer;">Block User</button>
+      </div>
+    `).join('');
+
+    $('admin-logs-list').innerHTML = logs.map(l => `
+      <div class="admin-log-row" style="font-size:12px; color:${l.level === 'error' ? '#ff4d4d' : 'var(--text-secondary)'}; margin-bottom:4px; padding:4px; border-bottom:1px solid var(--glass-border);">
+        [${new Date(l.created_at).toLocaleTimeString()}] ${esc(l.message)}
+      </div>
+    `).join('');
+  } catch (e) {
+    toast('Ошибка загрузки админки: ' + e.message, 'error');
+  }
+}
+
+window.updatePrice = async (key, val) => {
+  try {
+    await StorageService.apiRequest('/admin/prices', 'POST', { key, value: parseInt(val) });
+    toast('Цена обновлена', 'success');
+  } catch (e) {
+    toast('Ошибка обновления: ' + e.message, 'error');
+  }
+};
+
+window.blockUser = async (userId) => {
+  const reason = prompt('Reason for blocking?');
+  if (!reason) return;
+  try {
+    await StorageService.apiRequest('/admin/users/block', 'POST', { userId, reason });
+    toast('User blocked', 'success');
+  } catch (e) {
+    toast('Error blocking user: ' + e.message, 'error');
+  }
+};
+
+// ─── SUPPORT ──────────────────────────────────────────────────────────────────
+let supportInterval;
+async function renderSupport() {
+  if (state.orderCount === 0) {
+    $('support-chat-messages').innerHTML = '<div class="chat-msg system" style="text-align:center; color:var(--text-muted);">Чат поддержки станет доступен после вашего первого заказа.</div>';
+    $('support-input').disabled = true;
+    $('btn-send-support').disabled = true;
+    return;
+  }
+
+  $('support-input').disabled = false;
+  $('btn-send-support').disabled = false;
+
+  try {
+    const messages = await StorageService.apiRequest('/chat');
+    $('support-chat-messages').innerHTML = messages.map(m => `
+      <div class="chat-msg ${m.sender}" style="align-self: ${m.sender === 'user' ? 'flex-end' : 'flex-start'}; background: ${m.sender === 'user' ? 'var(--accent)' : 'var(--bg-card)'}; color: ${m.sender === 'user' ? 'var(--bg-primary)' : 'white'}; padding: 8px 12px; border-radius: 12px; max-width: 80%; margin-bottom: 10px;">
+        ${esc(m.text)}
+      </div>
+    `).join('');
+    $('support-chat-messages').scrollTo({ top: $('support-chat-messages').scrollHeight });
+  } catch (e) {
+    console.error('Failed to load chat', e);
+  }
+
+  clearInterval(supportInterval);
+  supportInterval = setInterval(async () => {
+    if (state.screen === 'support') {
+      const messages = await StorageService.apiRequest('/chat');
+      const currentCount = $('support-chat-messages').children.length;
+      if (messages.length > currentCount) {
+        renderSupport();
+      }
+    }
+  }, 5000);
+}
+
+function bindSupport() {
+  $('btn-send-support')?.addEventListener('click', async () => {
+    const inp = $('support-input');
+    const msg = inp.value.trim();
+    if (!msg) return;
+    haptic('light');
+    inp.value = '';
+
+    try {
+      await StorageService.apiRequest('/chat', 'POST', { text: msg });
+      renderSupport();
+    } catch (e) {
+      toast('Ошибка отправки: ' + e.message, 'error');
+    }
+  });
 }
 
 // ─── ИНИЦИАЛИЗАЦИЯ ────────────────────────────────────────────────────────────
-function init() {
-  // Загружаем данные
-  try { const u = localStorage.getItem('gaze_user'); if (u) state.user = JSON.parse(u); } catch (_) {}
-  try { const n = localStorage.getItem('gaze_orders'); if (n) state.orderCount = parseInt(n) || 0; } catch (_) {}
-
-  // Telegram WebApp init
+async function init() {
   const tg = window.Telegram?.WebApp;
-  if (tg?.initDataUnsafe?.user) {
-    try { tg.ready(); tg.expand(); } catch (_) {}
-    try { if (tg.setHeaderColor) tg.setHeaderColor('#080c14'); } catch (_) {}
-    try { if (tg.setBackgroundColor) tg.setBackgroundColor('#080c14'); } catch (_) {}
-    const u = tg.initDataUnsafe.user;
-    if (!state.user) {
-      state.user = {
-        name: [u.first_name, u.last_name].filter(Boolean).join(' ') || 'Пользователь',
-        email: `tg_${u.id}@telegram`, phone: '', address: '',
-        tgId: u.id, tgUsername: u.username || null
-      };
-      localStorage.setItem('gaze_user', JSON.stringify(state.user));
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    if (tg.setHeaderColor) tg.setHeaderColor('#080c14');
+    if (tg.setBackgroundColor) tg.setBackgroundColor('#080c14');
+  }
+
+  // Очищаем экран загрузки если он завис
+  const authTimeout = setTimeout(() => {
+    if (state.screen === 'auth' || !state.user) {
+       console.log('Auth taking too long, forcing check...');
+       const cachedUser = StorageService.getUser();
+       if (cachedUser) {
+           state.user = cachedUser;
+           showScreen('home');
+       }
     }
+  }, 3000);
+
+  // Синхронизация с бэкендом
+  try {
+    const syncResult = await StorageService.syncUser();
+    if (syncResult) {
+      state.user = syncResult;
+      state.orderCount = StorageService.getOrderCount();
+      clearTimeout(authTimeout);
+    }
+
+    const remotePrices = await StorageService.getPrices();
+    Object.assign(PRICES, remotePrices);
+  } catch (e) {
+    console.error('Init sync failed', e);
+    // Пытаемся восстановиться из кеша
+    state.user = StorageService.getUser();
   }
 
   bindAll();
-  showScreen(state.user ? 'home' : 'auth');
 
-  // Получаем admin chat_id в фоне
-  if (ADMIN_CHAT_ID === null) {
-    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?limit=50`)
-      .then(r => r.json())
-      .then(d => {
-        if (!d.ok) return;
-        for (const upd of d.result || []) {
-          const msg = upd.message;
-          if (msg?.from?.username === 'neznnezn') {
-            ADMIN_CHAT_ID = msg.chat.id;
-            break;
-          }
-        }
-        if (!ADMIN_CHAT_ID) ADMIN_CHAT_ID = ADMIN_CHAT;
-      })
-      .catch(() => { ADMIN_CHAT_ID = ADMIN_CHAT; });
+  if (state.user?.role === 'admin') {
+    const navAdmin = $('nav-admin');
+    if (navAdmin) navAdmin.style.display = 'flex';
+  }
+  if (state.orderCount > 0) {
+    const navSupport = $('nav-support');
+    if (navSupport) navSupport.style.display = 'flex';
+  }
+
+  const hasSeenLanding = localStorage.getItem('gaze_seen_landing');
+  if (!hasSeenLanding) {
+    showScreen('landing');
+  } else if (state.user) {
+    showScreen('home');
+  } else {
+    showScreen('auth');
   }
 }
 
-// ─── НАВИГАЦИЯ ────────────────────────────────────────────────────────────────
+// ─── НАВИГАЦИЯ И АНИМАЦИИ ──────────────────────────────────────────────────────
 function showScreen(name) {
-  $$('.screen').forEach(s => s.classList.remove('active'));
-  const t = $('screen-' + name);
-  if (t) t.classList.add('active');
+  const oldScreen = document.querySelector('.screen.active');
+  const newScreen = $('screen-' + name);
+
+  if (!newScreen) return;
+  if (oldScreen === newScreen) return;
+
+  // Анимация перехода через Anime.js
+  if (oldScreen) {
+    anime({
+      targets: oldScreen,
+      opacity: [1, 0],
+      translateX: [0, -20],
+      duration: 300,
+      easing: 'easeInQuad',
+      complete: () => {
+        oldScreen.classList.remove('active');
+        prepareNewScreen(name, newScreen);
+      }
+    });
+  } else {
+    prepareNewScreen(name, newScreen);
+  }
+}
+
+function prepareNewScreen(name, el) {
+  el.classList.add('active');
   state.screen = name;
 
+  // Анимация появления нового экрана
+  anime({
+    targets: el,
+    opacity: [0, 1],
+    translateX: [20, 0],
+    duration: 400,
+    easing: 'easeOutQuad'
+  });
+
   const nav = $('bottom-nav');
-  if (nav) nav.style.display = name === 'auth' ? 'none' : '';
+  if (nav) {
+    const shouldHideNav = (name === 'auth' || name === 'landing');
+    nav.style.display = shouldHideNav ? 'none' : 'flex';
+
+    // Плавное появление навигации
+    if (!shouldHideNav && nav.style.opacity === '0') {
+      anime({ targets: nav, opacity: [0, 1], translateY: [20, 0], duration: 500 });
+    }
+  }
 
   $$('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.screen === name));
 
+  // Инициализация логики экранов
   if (name === 'home') renderHome();
   if (name === 'profile') renderProfile();
-  if (name === 'calculator') renderCalcStep(1);
+  if (name === 'calculator') {
+    renderCalcStep(1);
+    animateEntrance('#calc-step-1');
+  }
+  if (name === 'admin') renderAdmin();
+  if (name === 'support') renderSupport();
+}
+
+function animateEntrance(selector) {
+  anime({
+    targets: selector + ' > *',
+    opacity: [0, 1],
+    translateY: [20, 0],
+    delay: anime.stagger(100),
+    duration: 600,
+    easing: 'easeOutExpo'
+  });
 }
 
 // ─── АВТОРИЗАЦИЯ ──────────────────────────────────────────────────────────────
@@ -393,75 +662,48 @@ function bindAuth() {
     });
   });
 
-  $('btn-login')?.addEventListener('click', doLogin);
-  $('btn-register')?.addEventListener('click', doRegister);
-}
-
-function doLogin() {
-  haptic('medium');
-  const email = $('login-email')?.value.trim();
-  const pass = $('login-pass')?.value;
-  clearErr(['login-email', 'login-pass']);
-  let ok = true;
-  if (!isEmail(email)) { fieldErr('login-email', 'Введите корректный email'); ok = false; }
-  if (pass?.length < 6) { fieldErr('login-pass', 'Минимум 6 символов'); ok = false; }
-  if (!ok) { haptic('error'); return; }
-  const btn = $('btn-login');
-  setLoading(btn, true);
-  setTimeout(() => {
-    setLoading(btn, false);
-    let accounts = {};
-    try { accounts = JSON.parse(localStorage.getItem('gaze_accounts') || '{}'); } catch (_) {}
-    if (!accounts[email] || accounts[email].pass !== btoa(pass)) {
-      haptic('error'); fieldErr('login-email', 'Неверный email или пароль'); return;
-    }
-    haptic('success');
-    state.user = accounts[email].user;
-    localStorage.setItem('gaze_user', JSON.stringify(state.user));
-    showScreen('home'); toast('Добро пожаловать!', 'success');
-  }, 700);
-}
-
-function doRegister() {
-  haptic('medium');
-  const name = $('reg-name')?.value.trim();
-  const email = $('reg-email')?.value.trim();
-  const pass = $('reg-pass')?.value;
-  clearErr(['reg-name', 'reg-email', 'reg-pass']);
-  let ok = true;
-  if (name?.length < 2) { fieldErr('reg-name', 'Введите ваше имя'); ok = false; }
-  if (!isEmail(email)) { fieldErr('reg-email', 'Корректный email'); ok = false; }
-  if (pass?.length < 6) { fieldErr('reg-pass', 'Минимум 6 символов'); ok = false; }
-  if (!ok) { haptic('error'); return; }
-  const btn = $('btn-register');
-  setLoading(btn, true);
-  setTimeout(() => {
-    setLoading(btn, false);
-    let accounts = {};
-    try { accounts = JSON.parse(localStorage.getItem('gaze_accounts') || '{}'); } catch (_) {}
-    if (accounts[email]) { haptic('error'); fieldErr('reg-email', 'Аккаунт уже существует'); return; }
-    haptic('success');
-    state.user = { name, email, phone: '', address: '' };
-    accounts[email] = { pass: btoa(pass), user: state.user };
-    localStorage.setItem('gaze_accounts', JSON.stringify(accounts));
-    localStorage.setItem('gaze_user', JSON.stringify(state.user));
-    showScreen('home'); toast('Аккаунт создан!', 'success');
-  }, 800);
+  $('btn-login')?.addEventListener('click', () => toast('Используйте Telegram для входа'));
+  $('btn-register')?.addEventListener('click', () => toast('Используйте Telegram для входа'));
 }
 
 // ─── ГЛАВНАЯ ──────────────────────────────────────────────────────────────────
 function renderHome() {
   const nameEl = $('home-username');
-  if (nameEl && state.user?.name) nameEl.textContent = state.user.name.split(' ')[0];
+  if (nameEl && state.user?.full_name) nameEl.textContent = state.user.full_name.split(' ')[0];
 }
 
 // ─── КАЛЬКУЛЯТОР (3 шага) ─────────────────────────────────────────────────────
 let calcStep = 1;
 
 function renderCalcStep(n) {
+  const oldStep = document.querySelector('.calc-step.active');
+  const newStep = $('calc-step-' + n);
+
+  if (oldStep && oldStep !== newStep) {
+    anime({
+      targets: oldStep,
+      opacity: [1, 0],
+      translateX: [0, -10],
+      duration: 200,
+      easing: 'easeInQuad',
+      complete: () => {
+        oldStep.classList.remove('active');
+        activateStep(n, newStep);
+      }
+    });
+  } else {
+    activateStep(n, newStep);
+  }
+}
+
+function activateStep(n, el) {
+  if (!el) return;
   calcStep = n;
-  $$('.calc-step').forEach(s => s.classList.remove('active'));
-  $('calc-step-' + n)?.classList.add('active');
+  el.classList.add('active');
+
+  // Анимация элементов внутри шага
+  animateEntrance('#calc-step-' + n);
+
   $$('.step-dot').forEach((dot, i) => {
     dot.classList.remove('active', 'done');
     if (i + 1 === n) dot.classList.add('active');
@@ -471,7 +713,6 @@ function renderCalcStep(n) {
 }
 
 function bindCalculator() {
-  // Шаг 1 — площадь и тип
   $$('.cam-type-card').forEach(card => {
     card.addEventListener('click', () => {
       haptic('selection');
@@ -481,7 +722,6 @@ function bindCalculator() {
     });
   });
 
-  // Быстрые варианты площади
   $$('.area-hint').forEach(h => {
     h.addEventListener('click', () => {
       haptic('light');
@@ -505,7 +745,6 @@ function bindCalculator() {
     renderCalcStep(2);
   });
 
-  // Шаг 2 — выбор пакета
   $$('.pkg-card').forEach(card => {
     card.addEventListener('click', () => {
       haptic('medium');
@@ -533,7 +772,6 @@ function bindCalculator() {
     renderCalcStep(3);
   });
 
-  // Шаг 3
   $('btn-calc3-back')?.addEventListener('click', () => { haptic('light'); renderCalcStep(2); });
   $('btn-calc3-order')?.addEventListener('click', () => { haptic('success'); doOrder(); });
 }
@@ -582,55 +820,11 @@ function buildAndShowResult() {
       <div class="total-row"><span class="total-label">📷 Камер</span><span class="total-value">${spec.camCount} шт.</span></div>
       <div class="total-row"><span class="total-label">🔌 Кабель</span><span class="total-value">~${spec.cableM} м</span></div>
       <div class="total-row"><span class="total-label">📦 Пакет</span><span class="total-value">${pkg.name}</span></div>
-      <div class="total-row"><span class="total-label">🔧 Монтаж</span><span class="total-value">${fmt(spec.installTotal)}</span></div>
+      <div class="total-row"><span class="total-label">🔧 Работы</span><span class="total-value">${fmt(spec.laborTotal)}</span></div>
       <div class="total-row total-final">
         <span class="total-label">💰 ИТОГО</span>
-        <span class="total-value">${fmt(spec.total)}</span>
+        <span class="total-value">${fmt(spec.total)}${state.orderCount >= 3 ? ' <span style="font-size:12px;color:var(--accent);">(VIP -5%)</span>' : ''}</span>
       </div>`;
-  }
-}
-
-// ─── ОФОРМЛЕНИЕ ЗАКАЗА ────────────────────────────────────────────────────────
-async function doOrder() {
-  if (!state.user) { toast('Войдите в аккаунт', 'error'); return; }
-  if (!state.user.phone) {
-    haptic('error');
-    toast('Укажите телефон в профиле для связи', 'error');
-    setTimeout(() => showScreen('profile'), 1500);
-    return;
-  }
-
-  const btn = $('btn-calc3-order');
-  setLoading(btn, true);
-
-  const orderId = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const orderData = {
-    id: orderId,
-    user: state.user,
-    area: state.calc.area,
-    cameraType: state.calc.cameraType,
-    opts: { soundRecord: state.calc.soundRecord, motionDetect: state.calc.motionDetect },
-    spec: state.calc.result,
-    timestamp: new Date().toISOString()
-  };
-
-  try {
-    await sendOrderToTelegram(orderData);
-    haptic('success');
-    setLoading(btn, false);
-    state.orderCount++;
-    localStorage.setItem('gaze_orders', String(state.orderCount));
-
-    // Показываем экран успеха
-    $('order-id-display').textContent = '#' + orderId;
-    $('order-success').classList.add('show');
-    $$('.calc-step').forEach(s => s.classList.remove('active'));
-
-  } catch (err) {
-    haptic('error');
-    setLoading(btn, false);
-    toast('Ошибка отправки. Проверьте соединение.', 'error');
-    console.error('Telegram send error:', err);
   }
 }
 
@@ -638,15 +832,30 @@ async function doOrder() {
 function renderProfile() {
   if (!state.user) return;
   const u = state.user;
-  const initials = (u.name || 'П').split(' ').map(n => n[0] || '').join('').substring(0, 2).toUpperCase();
+  const initials = (u.full_name || 'П').split(' ').map(n => n[0] || '').join('').substring(0, 2).toUpperCase();
 
   const set = (id, val) => { const el = $(id); if (el) el.textContent = val; };
   set('profile-initials', initials);
-  set('profile-display-name', u.name || 'Пользователь');
+  set('profile-display-name', u.full_name || 'Пользователь');
   set('profile-display-email', u.email || '');
-  set('profile-row-name', u.name || '—');
+  set('profile-row-name', u.full_name || '—');
   set('profile-row-email', u.email || '—');
   set('profile-stat-orders', state.orderCount);
+
+  // VIP Status Logic
+  const vipBadge = $('vip-badge');
+  const clientStatus = $('profile-client-status');
+  if (vipBadge) {
+    if (state.orderCount >= 3) {
+      vipBadge.style.display = 'inline-block';
+      vipBadge.textContent = '💎 VIP';
+      vipBadge.title = 'Premium функции активированы: Приоритетная поддержка, -5% на монтаж';
+      if (clientStatus) clientStatus.textContent = 'GAZE Pro';
+    } else {
+      vipBadge.style.display = 'none';
+      if (clientStatus) clientStatus.textContent = 'Базовый';
+    }
+  }
 
   const phoneEl = $('profile-row-phone');
   if (phoneEl) { phoneEl.textContent = u.phone || 'Не указан'; phoneEl.classList.toggle('placeholder', !u.phone); }
@@ -654,34 +863,71 @@ function renderProfile() {
   const addrEl = $('profile-row-address');
   if (addrEl) { addrEl.textContent = u.address || 'Не указан'; addrEl.classList.toggle('placeholder', !u.address); }
 
-  const editName = $('edit-name'); if (editName) editName.value = u.name || '';
+  const editName = $('edit-name'); if (editName) editName.value = u.full_name || '';
   const editPhone = $('edit-phone'); if (editPhone) editPhone.value = u.phone || '';
   const editAddr = $('edit-address'); if (editAddr) editAddr.value = u.address || '';
 }
 
 function bindProfile() {
   $('btn-edit-profile')?.addEventListener('click', () => {
-    haptic(); $('profile-main-view').style.display = 'none'; $('profile-edit-view').style.display = 'flex';
+    haptic();
+    $('profile-main-view').style.display = 'none';
+    $('profile-edit-view').style.display = 'flex';
   });
   $('btn-edit-back')?.addEventListener('click', () => {
     haptic(); $('profile-main-view').style.display = ''; $('profile-edit-view').style.display = 'none';
   });
-  $('btn-save-profile')?.addEventListener('click', () => {
+  $('btn-save-profile')?.addEventListener('click', async () => {
     haptic('medium');
+    clearErr(['edit-name', 'edit-phone', 'edit-address']);
+
     const name = $('edit-name')?.value.trim();
-    if (name?.length < 2) { toast('Введите корректное имя', 'error'); return; }
-    state.user.name = name;
-    state.user.phone = $('edit-phone')?.value.trim() || '';
-    state.user.address = $('edit-address')?.value.trim() || '';
-    localStorage.setItem('gaze_user', JSON.stringify(state.user));
-    renderProfile();
-    $('profile-main-view').style.display = ''; $('profile-edit-view').style.display = 'none';
-    haptic('success'); toast('Профиль сохранён', 'success');
+    const phone = $('edit-phone')?.value.trim();
+    const address = $('edit-address')?.value.trim();
+
+    if (name?.length < 2) {
+        fieldErr('edit-name', 'Введите корректное имя');
+        return;
+    }
+
+    // Улучшенная валидация RU номера
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!/^(7|8)9\d{9}$/.test(cleanPhone)) {
+        fieldErr('edit-phone', 'Введите корректный номер (например, +7 999 000-00-00)');
+        return;
+    }
+
+    // Address Validation
+    setLoading($('btn-save-profile'), true);
+    const isAddrValid = await validateManualAddress(address);
+    if (!isAddrValid) {
+        setLoading($('btn-save-profile'), false);
+        fieldErr('edit-address', 'Такого адреса не существует, проверьте правильность ввода');
+        return;
+    }
+
+    const profileData = {
+      full_name: name,
+      phone: phone,
+      address: address,
+      email: state.user.email
+    };
+
+    try {
+      state.user = await StorageService.updateUserProfile(profileData);
+      renderProfile();
+      $('profile-main-view').style.display = ''; $('profile-edit-view').style.display = 'none';
+      haptic('success'); toast('Профиль сохранён', 'success');
+    } catch (e) {
+      toast('Ошибка сохранения: ' + e.message, 'error');
+    } finally {
+        setLoading($('btn-save-profile'), false);
+    }
   });
   $('btn-logout')?.addEventListener('click', () => {
     haptic('rigid');
     state.user = null; state.orderCount = 0;
-    localStorage.removeItem('gaze_user'); localStorage.removeItem('gaze_orders');
+    StorageService.clearSession();
     showScreen('auth'); toast('Вы вышли из аккаунта');
   });
 }
@@ -691,19 +937,46 @@ function bindAll() {
   bindAuth();
   bindCalculator();
   bindProfile();
+  bindSupport();
 
-  // Нижняя навигация
   $$('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
       haptic('light');
+      anime({
+        targets: btn,
+        scale: [1, 0.9, 1],
+        duration: 200,
+        easing: 'easeOutQuad'
+      });
       if (btn.dataset.screen) showScreen(btn.dataset.screen);
     });
   });
 
-  // Промо → калькулятор
   $('promo-to-calc')?.addEventListener('click', () => { haptic(); showScreen('calculator'); });
 
-  // Новый заказ после успеха
+  $('btn-landing-start')?.addEventListener('click', () => {
+    haptic();
+    anime({
+      targets: '#btn-landing-start',
+      scale: [1, 0.9, 1.1, 1],
+      duration: 400,
+      easing: 'easeInOutQuad',
+      complete: () => {
+        localStorage.setItem('gaze_seen_landing', 'true');
+        showScreen(state.user ? 'home' : 'auth');
+      }
+    });
+  });
+
+  $('btn-show-guide')?.addEventListener('click', () => {
+    const guide = $('visual-guide');
+    if (guide) {
+      const isVisible = guide.style.display === 'block';
+      guide.style.display = isVisible ? 'none' : 'block';
+      haptic('light');
+    }
+  });
+
   $('btn-new-order')?.addEventListener('click', () => {
     haptic();
     $('order-success').classList.remove('show');
@@ -714,20 +987,7 @@ function bindAll() {
     const areaInput = $('area-input'); if (areaInput) areaInput.value = '';
     showScreen('calculator');
   });
-}
 
-// ─── ЗАПУСК ───────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', init);
-window.App = { init };
-
-// Дополнительные обработчики для кнопок на главной
-document.addEventListener('DOMContentLoaded', () => {
-  ['home-pkg-budget','home-pkg-standard','home-pkg-premium'].forEach(id => {
-    document.getElementById(id)?.addEventListener('click', () => {
-      showScreen('calculator');
-    });
-  });
-  // Дублирующие ссылки на редактирование профиля
   document.getElementById('btn-edit-profile-2')?.addEventListener('click', () => {
     document.getElementById('profile-main-view').style.display = 'none';
     document.getElementById('profile-edit-view').style.display = 'flex';
@@ -735,5 +995,39 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-edit-profile-3')?.addEventListener('click', () => {
     document.getElementById('profile-main-view').style.display = 'none';
     document.getElementById('profile-edit-view').style.display = 'flex';
+  });
+
+  // Map Listeners
+  $('btn-map-open')?.addEventListener('click', openFullMap);
+  $('btn-map-close')?.addEventListener('click', closeFullMap);
+  $('btn-map-manual')?.addEventListener('click', () => {
+    closeFullMap();
+    $('edit-address')?.focus();
+  });
+  $('btn-map-confirm')?.addEventListener('click', () => {
+    if (selectedAddress) {
+      const input = $('edit-address');
+      if (input) {
+          input.value = selectedAddress;
+          // Trigger input event to clear potential validation errors
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      closeFullMap();
+      haptic('success');
+    } else {
+      toast('Выберите адрес на карте', 'error');
+    }
+  });
+}
+
+// ─── ЗАПУСК ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', init);
+window.App = { init };
+
+document.addEventListener('DOMContentLoaded', () => {
+  ['home-pkg-budget','home-pkg-standard','home-pkg-premium'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', () => {
+      showScreen('calculator');
+    });
   });
 });
