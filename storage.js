@@ -26,7 +26,7 @@ const StorageService = (() => {
       'x-tg-init-data': initData
     };
 
-    // Добавляем Content-Type только если есть тело запроса
+    // Добавляем Content-Type только когда это не GET и есть тело запроса
     if (method !== 'GET' && body !== null) {
       headers['Content-Type'] = 'application/json';
     }

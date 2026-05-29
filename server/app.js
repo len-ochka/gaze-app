@@ -11,9 +11,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
 
-// Инициализация БД перед запуском сервера
-// const db = getDb(); // Removed top-level db call
-
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
@@ -233,8 +230,7 @@ app.get('/api/admin/orders', authMiddleware, adminMiddleware, (req, res) => {
 });
 
 app.get('/api/admin/stats', authMiddleware, adminMiddleware, (req, res) => {
-  const isMySQL = getDb().isMySQL;
-  const recentDate = isMySQL ? 'DATE_SUB(NOW(), INTERVAL 7 DAY)' : "date('now', '-7 days')";
+  const recentDate = getDb().isMySQL ? 'DATE_SUB(NOW(), INTERVAL 7 DAY)' : "date('now', '-7 days')";
 
   const statsQuery = `
     SELECT
@@ -245,7 +241,7 @@ app.get('/api/admin/stats', authMiddleware, adminMiddleware, (req, res) => {
   `;
 
   // История для графиков
-  const historyQuery = isMySQL
+  const historyQuery = getDb().isMySQL
     ? `SELECT DATE(created_at) as date, SUM(total_price) as revenue FROM orders WHERE created_at > DATE_SUB(NOW(), INTERVAL 14 DAY) GROUP BY DATE(created_at) ORDER BY date`
     : `SELECT date(created_at) as date, SUM(total_price) as revenue FROM orders WHERE created_at > date('now', '-14 days') GROUP BY date(created_at) ORDER BY date`;
 
@@ -286,8 +282,7 @@ app.get('/api/admin/logs', authMiddleware, adminMiddleware, (req, res) => {
 
 app.post('/api/admin/prices', authMiddleware, adminMiddleware, (req, res) => {
   const { key, value } = req.body;
-  const isMySQL = getDb().isMySQL;
-  const sql = isMySQL
+  const sql = getDb().isMySQL
     ? 'REPLACE INTO prices (`key`, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)'
     : 'INSERT OR REPLACE INTO prices (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)';
 
