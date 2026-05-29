@@ -5,7 +5,7 @@
 const StorageService = (() => {
   const PREFIX = 'gaze_';
 
-  // Detect API URL based on environment
+  // Определение URL API based on environment
   const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:3000/api'
     : window.location.origin + '/api';
@@ -40,11 +40,24 @@ const StorageService = (() => {
 
       if (!response.ok) {
         let errorMsg = `API Error ${response.status}`;
+        let errorData = null;
         try {
-          const err = await response.json();
-          errorMsg = err.error || errorMsg;
+          errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
         } catch (parseErr) {}
-        throw new Error(errorMsg);
+
+        const err = new Error(errorMsg);
+        err.status = response.status;
+        err.data = errorData;
+
+        // Если получили 401 или 403 на критическом пути - очищаем сессию
+        if (response.status === 401 || response.status === 403) {
+          if (endpoint.includes('/auth') || endpoint.includes('/user')) {
+             console.warn('[StorageService] Auth error detected, clearing session...');
+             clearSession();
+          }
+        }
+        throw err;
       }
       return await response.json();
     } catch (e) {

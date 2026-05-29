@@ -223,7 +223,7 @@ function buildSpec(pkg, area, camType, opts) {
   const micTotal = opts.soundRecord ? PRICES.mic * (camCount <= 4 ? 1 : 2) : 0;
   const internetTotal = opts.hasInternet ? (PRICES.router_4g || 6500) : 0;
 
-  // Labor calculation with Moscow rates & margin
+  // Расчет стоимости работ with Moscow rates & margin
   const baseInstall = PRICES[pkg.install] * camCount;
   const nvrInstall = PRICES.install_nvr;
   const remoteSetup = PRICES.setup_remote;
@@ -251,7 +251,10 @@ function buildSpec(pkg, area, camType, opts) {
   const equipmentTotal = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal + internetTotal;
   let total = equipmentTotal + laborTotal + (opts.maintenance ? PRICES.maintenance : 0);
 
-  if (state.orderCount >= 3) total = Math.round(total * 0.95);
+  // Округляем итог до сотен
+  total = Math.round(total / 100) * 100;
+
+  if (state.orderCount >= 3) total = Math.round(total * 0.95 / 100) * 100;
 
   return { items, equipment: equipmentTotal, laborTotal, total, camCount, cableM, pkg, maintenance: opts.maintenance };
 }
@@ -334,57 +337,81 @@ function openFullMap() {
   window.ymaps.ready(() => {
     if (!myMap) {
       myMap = new ymaps.Map("big-map", {
-        center: [55.76, 37.64],
+        center: [55.755864, 37.617698], // Москва
         zoom: 11,
         controls: ['zoomControl', 'geolocationControl']
       });
 
       myMap.events.add('click', function (e) {
         const coords = e.get('coords');
-        myMap.geoObjects.removeAll();
-        myMap.geoObjects.add(new ymaps.Placemark(coords));
         getAddress(coords);
       });
     } else {
       myMap.container.fitToViewport();
     }
 
-    // Если адрес уже введен, центрируем карту на нем
+    // Ограничиваем SuggestView
+    if (!$('edit-address').dataset.suggestBound) {
+       new ymaps.SuggestView('edit-address', {
+          boundedBy: [[55.1, 36.7], [56.2, 38.5]], // Примерные границы МО
+          strictBounds: true
+       });
+       $('edit-address').dataset.suggestBound = "true";
+    }
+
     if (currentAddr && currentAddr.length > 5) {
-      ymaps.geocode(currentAddr).then(res => {
+      ymaps.geocode(currentAddr, { results: 1 }).then(res => {
         const obj = res.geoObjects.get(0);
         if (obj) {
           const coords = obj.geometry.getCoordinates();
+          updateMapMarker(coords, obj.getAddressLine());
           myMap.setCenter(coords, 16);
-          myMap.geoObjects.removeAll();
-          myMap.geoObjects.add(new ymaps.Placemark(coords));
-          selectedAddress = obj.getAddressLine();
-          if ($('map-selection-info')) $('map-selection-info').textContent = selectedAddress;
         }
       });
     }
   });
 }
 
-function getAddress(coords) {
-  ymaps.geocode(coords).then(function (res) {
-    const firstGeoObject = res.geoObjects.get(0);
-    if (!firstGeoObject) {
-      selectedAddress = '';
-      if ($('map-selection-info')) $('map-selection-info').textContent = 'Адрес не найден';
-      return;
-    }
+function updateMapMarker(coords, address) {
+    myMap.geoObjects.removeAll();
+    const placemark = new ymaps.Placemark(coords, { iconCaption: 'Загрузка...' }, { preset: 'islands#blueDotIconWithCaption' });
+    myMap.geoObjects.add(placemark);
 
-    selectedAddress = firstGeoObject.getAddressLine();
-    const info = $('map-selection-info');
-    if (info) info.textContent = selectedAddress;
+    selectedAddress = address;
+    placemark.properties.set('iconCaption', address);
+    if ($('map-selection-info')) $('map-selection-info').textContent = address;
 
-    // Сразу обновляем стейт и поле, чтобы не потерять выбор
     const input = $('edit-address');
     if (input) {
-      input.value = selectedAddress;
-      input.classList.remove('error');
+        input.value = address;
+        input.classList.remove('error');
     }
+}
+
+/**
+ * Обратное геокодирование координат в адрес с помощью Яндекс.Карт.
+ */
+function getAddress(coords) {
+  // Пробуем найти ближайший дом
+  ymaps.geocode(coords, { kind: 'house', results: 1 }).then(function (res) {
+    let obj = res.geoObjects.get(0);
+
+    // Если дом не найден, ищем любой ближайший объект (улицу, метро и т.д.)
+    if (!obj) {
+      return ymaps.geocode(coords, { results: 1 }).then(res2 => {
+        obj = res2.geoObjects.get(0);
+        if (obj) updateMapMarker(coords, obj.getAddressLine());
+        else {
+          selectedAddress = '';
+          if ($('map-selection-info')) $('map-selection-info').textContent = 'Адрес не найден';
+        }
+      });
+    }
+
+    updateMapMarker(coords, obj.getAddressLine());
+  }).catch(err => {
+    console.error('Geocoding error:', err);
+    toast('Ошибка геокодирования', 'error');
   });
 }
 
@@ -643,7 +670,15 @@ async function performAuth() {
 
   try {
     // 1. Попытка синхронизации с сервером (внутри storage.js 4 попытки с задержкой)
-    const syncResult = await StorageService.syncUser(4);
+    const syncResult = await StorageService.syncUser(4).catch(err => {
+        // Если это ошибка авторизации (401/403), пробуем обновить данные из TG
+        if (err.status === 401 || err.status === 403) {
+            console.log('[App] Auth error, clearing cache and retrying...');
+            StorageService.clearSession();
+        }
+        throw err;
+    });
+
     clearTimeout(uiFallbackTimer);
 
     if (syncResult) {
@@ -708,9 +743,9 @@ function showScreen(name) {
     anime({
       targets: oldScreen,
       opacity: [1, 0],
-      translateX: [0, -20],
+      scale: [1, 0.95],
       duration: 300,
-      easing: 'easeInQuad',
+      easing: 'easeInExpo',
       complete: () => {
         oldScreen.classList.remove('active');
         prepareNewScreen(name, newScreen);
@@ -729,9 +764,10 @@ function prepareNewScreen(name, el) {
   anime({
     targets: el,
     opacity: [0, 1],
-    translateX: [20, 0],
-    duration: 400,
-    easing: 'easeOutQuad'
+    scale: [1.05, 1],
+    translateY: [10, 0],
+    duration: 450,
+    easing: 'easeOutExpo'
   });
 
   const nav = $('bottom-nav');
@@ -983,7 +1019,7 @@ function renderProfile() {
   set('profile-row-email', u.email || '—');
   set('profile-stat-orders', state.orderCount);
 
-  // VIP Status Logic
+  // Логика VIP статуса
   const vipBadge = $('vip-badge');
   const clientStatus = $('profile-client-status');
   if (vipBadge) {
@@ -1005,12 +1041,55 @@ function renderProfile() {
   if (addrEl) { addrEl.textContent = u.address || 'Не указан'; addrEl.classList.toggle('placeholder', !u.address); }
 
   const editName = $('edit-name'); if (editName) editName.value = u.full_name || '';
-  const editPhone = $('edit-phone'); if (editPhone) editPhone.value = u.phone || '';
+  const editPhone = $('edit-phone');
+  if (editPhone) {
+      editPhone.value = u.phone || '';
+      applyPhoneMask(editPhone);
+  }
   const editAddr = $('edit-address'); if (editAddr) editAddr.value = u.address || '';
 
   StorageService.getReferralData().then(data => {
     if (data) { $('ref-bonus-display').textContent = fmt(data.balance); state.referralCode = data.code; }
   }).catch(() => {});
+}
+
+function applyPhoneMask(input) {
+  const onInput = (e) => {
+    let value = input.value.replace(/\D/g, '');
+    if (value.startsWith('8')) value = '7' + value.slice(1);
+    if (value.length > 0 && value[0] !== '7') value = '7' + value;
+
+    let formatted = '';
+    if (value.length > 0) {
+      formatted = '+7 (';
+      if (value.length > 1) formatted += value.substring(1, 4);
+      if (value.length >= 5) formatted += ') ' + value.substring(4, 7);
+      if (value.length >= 8) formatted += '-' + value.substring(7, 9);
+      if (value.length >= 10) formatted += '-' + value.substring(9, 11);
+    }
+
+    const cursor = input.selectionStart;
+    const oldLen = input.value.length;
+    input.value = formatted;
+
+    if (e.inputType !== 'deleteContentBackward') {
+        const newLen = input.value.length;
+        input.setSelectionRange(cursor + (newLen - oldLen), cursor + (newLen - oldLen));
+    }
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === 'Backspace' && input.value.length <= 4) {
+      e.preventDefault();
+      input.value = '';
+    }
+  };
+
+  input.addEventListener('input', onInput);
+  input.addEventListener('keydown', onKeyDown);
+  input.addEventListener('focus', () => {
+    if (!input.value) input.value = '+7 (';
+  });
 }
 
 function bindProfile() {
@@ -1053,7 +1132,7 @@ function bindProfile() {
         return;
     }
 
-    // Address Validation
+    // Валидация адреса
     setLoading($('btn-save-profile'), true);
     const isAddrValid = await validateManualAddress(address);
     if (!isAddrValid) {
@@ -1172,7 +1251,7 @@ function bindAll() {
     document.getElementById('profile-edit-view').style.display = 'flex';
   });
 
-  // Map Listeners
+  // Слушатели карты
   $('btn-map-open')?.addEventListener('click', openFullMap);
   $('btn-map-close')?.addEventListener('click', closeFullMap);
   $('btn-map-manual')?.addEventListener('click', () => {
@@ -1184,7 +1263,7 @@ function bindAll() {
       const input = $('edit-address');
       if (input) {
           input.value = selectedAddress;
-          // Trigger input event to clear potential validation errors
+          // Вызов события input to clear potential validation errors
           input.dispatchEvent(new Event('input', { bubbles: true }));
       }
       closeFullMap();
