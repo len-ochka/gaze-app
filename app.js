@@ -111,6 +111,39 @@ const state = {
 };
 
 // ─── УТИЛИТЫ ──────────────────────────────────────────────────────────────────
+let _isOnline = true;
+async function updateConnStatus() {
+  const el = $('conn-status');
+  if (!el) return;
+
+  try {
+    const start = Date.now();
+    const res = await fetch(StorageService.API_URL.replace('/api', '/api/health'), { method: 'GET', cache: 'no-cache' });
+    const duration = Date.now() - start;
+
+    if (res.ok) {
+       _isOnline = true;
+       el.style.background = 'rgba(0,255,148,0.1)';
+       el.style.color = 'var(--accent-2)';
+       el.style.borderColor = 'rgba(0,255,148,0.2)';
+       el.querySelector('span').textContent = `ONLINE (${duration}ms)`;
+    } else {
+       throw new Error();
+    }
+  } catch (e) {
+    _isOnline = false;
+    el.style.background = 'rgba(255,74,107,0.1)';
+    el.style.color = '#ff4a6b';
+    el.style.borderColor = 'rgba(255,74,107,0.2)';
+    el.querySelector('span').textContent = 'OFFLINE';
+  }
+}
+
+// Пинг каждые 30 секунд
+setInterval(updateConnStatus, 30000);
+window.addEventListener('online', updateConnStatus);
+window.addEventListener('offline', updateConnStatus);
+
 function fmt(n) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
 }
@@ -1063,6 +1096,27 @@ function renderProfile() {
 
   StorageService.getReferralData().then(data => {
     if (data) { $('ref-bonus-display').textContent = fmt(data.balance); state.referralCode = data.code; }
+  }).catch(() => {});
+
+  StorageService.getOrderHistory().then(orders => {
+      const container = $('order-history-list');
+      if (!container) return;
+      if (!orders || orders.length === 0) {
+          container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">У вас пока нет заказов</div>';
+          return;
+      }
+      container.innerHTML = orders.map(o => `
+        <div class="admin-order-card" style="background:var(--bg-card); padding:12px; border-radius:12px; border-left:4px solid ${o.status === 'completed' ? 'var(--accent-2)' : 'var(--accent)'}">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span style="font-weight:bold; font-size:14px;">Заказ #${esc(o.id)}</span>
+            <span class="status-badge status-${o.status}" style="font-size:9px;">${o.status}</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-secondary);">
+            Дата: ${new Date(o.created_at).toLocaleDateString()} <br>
+            Сумма: <b>${fmt(o.total_price)}</b>
+          </div>
+        </div>
+      `).join('');
   }).catch(() => {});
 }
 

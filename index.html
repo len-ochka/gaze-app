@@ -84,6 +84,10 @@
         <span class="greeting">Привет,</span>
         <h1 id="home-username">Пользователь</h1>
       </div>
+      <div id="conn-status" style="font-size:10px; display:flex; align-items:center; gap:5px; background:rgba(0,255,148,0.1); color:var(--accent-2); padding:4px 10px; border-radius:20px; border:1px solid rgba(0,255,148,0.2);">
+         <div style="width:6px; height:6px; background:currentColor; border-radius:50%; box-shadow:0 0 5px currentColor;"></div>
+         <span>ONLINE</span>
+      </div>
     </div>
     <div class="home-scroll">
       <!-- Промо -->
@@ -456,6 +460,11 @@
         </div>
       </div>
 
+      <div class="section-title" style="margin-top:20px; margin-bottom:12px;">📋 История заказов</div>
+      <div id="order-history-list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+         <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">У вас пока нет заказов</div>
+      </div>
+
       <!-- Referral Program -->
       <div class="section-title" style="margin-top:20px; margin-bottom:12px;">💎 Реферальная программа</div>
       <div class="referral-card" style="background:var(--bg-card); border:1px solid var(--accent-dim); border-radius:16px; padding:16px; margin-bottom:20px;">
@@ -534,6 +543,29 @@
   </div>
 
   <!-- ══════════════ NAV ══════════════ -->
+  <!-- ══════════════ EQUIPMENT GUIDE ══════════════ -->
+  <div class="screen guide-screen" id="screen-guide">
+    <div class="screen-header"><h2>Гайд по технологиям</h2></div>
+    <div class="faq-scroll" style="flex:1; overflow-y:auto; padding:20px;">
+      <div class="faq-item">
+        <h4>Что такое NVR и зачем он нужен?</h4>
+        <p>Network Video Recorder — это «мозг» системы. Он принимает сигнал от камер, записывает его на жесткий диск и обеспечивает вам доступ к архиву через смартфон из любой точки мира.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Разрешение: 2МП vs 4K (8МП)</h4>
+        <p>2МП (1080p) достаточно, чтобы видеть общую картину. 4K позволяет детально рассмотреть лицо человека или номер автомобиля на значительном расстоянии при цифровом зуме.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Преимущества PoE питания</h4>
+        <p>Power over Ethernet позволяет передавать и данные, и электричество по одному кабелю «витая пара». Это надежнее, упрощает монтаж и исключает помехи, характерные для старых аналоговых систем.</p>
+      </div>
+      <div class="faq-item">
+        <h4>Глубина архива и HDD</h4>
+        <p>Мы используем диски серии WD Purple или Seagate SkyHawk, оптимизированные для работы 24/7. Рекомендуемый архив — от 14 дней. При заполнении диска старые записи заменяются новыми автоматически.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- ══════════════ FAQ ══════════════ -->
   <div class="screen faq-screen" id="screen-faq">
     <div class="screen-header"><h2>Часто задаваемые вопросы</h2></div>
@@ -569,6 +601,10 @@
     <button class="nav-item" data-screen="profile">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span>Профиль</span>
+    </button>
+    <button class="nav-item" data-screen="guide">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0-4-4H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a4 4 0 0 1 4-4h6z"/></svg>
+      <span>Гайд</span>
     </button>
     <button class="nav-item" data-screen="faq">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>

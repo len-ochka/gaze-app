@@ -207,8 +207,10 @@ const StorageService = (() => {
   async function getAdminStats() { return await apiRequest('/admin/stats'); }
   async function updateOrderStatus(orderId, status) { return await apiRequest('/admin/orders/status', 'POST', { orderId, status }); }
   async function getReferralData() { return await apiRequest('/user/referrals'); }
+  async function getOrderHistory() { return await apiRequest('/orders/history'); }
 
   return {
+    API_URL,
     syncUser,
     updateUserProfile,
     getPrices,
@@ -216,6 +218,7 @@ const StorageService = (() => {
     getAdminStats,
     updateOrderStatus,
     getReferralData,
+    getOrderHistory,
     getUser,
     getOrderCount,
     clearSession,
