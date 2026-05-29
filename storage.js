@@ -70,10 +70,11 @@ const StorageService = (() => {
    * Синхронизация состояния пользователя с бэкендом с механизмом повторов.
    */
   async function syncUser(retries = 4) {
+    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
     for (let i = 0; i < retries; i++) {
       try {
         console.log(`[StorageService] Попытка синхронизации ${i + 1}...`);
-        const user = await apiRequest('/auth/sync', 'POST', null, 10000);
+        const user = await apiRequest('/auth/sync', 'POST', { start_param: startParam }, 10000);
 
         if (user) {
           set('user', user);
@@ -186,11 +187,18 @@ const StorageService = (() => {
     // We keep 'prices' in cache to avoid blank screens if offline
   }
 
+  async function getAdminStats() { return await apiRequest('/admin/stats'); }
+  async function updateOrderStatus(orderId, status) { return await apiRequest('/admin/orders/status', 'POST', { orderId, status }); }
+  async function getReferralData() { return await apiRequest('/user/referrals'); }
+
   return {
     syncUser,
     updateUserProfile,
     getPrices,
     submitOrder,
+    getAdminStats,
+    updateOrderStatus,
+    getReferralData,
     getUser,
     getOrderCount,
     clearSession,

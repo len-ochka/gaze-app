@@ -47,7 +47,8 @@ const PRICES = {
   // Дополнительно
   cable_work: 100,          // Прокладка кабеля за метр
   mic: 1200,
-  courier: 1000
+  courier: 1000,
+  maintenance: 2500  // Ежемесячное ТО
 };
 
 // ─── ПАКЕТЫ ───────────────────────────────────────────────────────────────────
@@ -99,6 +100,9 @@ const state = {
     package: null,      // budget / standard / premium
     soundRecord: false,
     motionDetect: false,
+    hasInternet: false,
+    maintenance: false,
+    archiveDays: 14,
     result: null
   },
   cart: [],
@@ -131,6 +135,12 @@ function setLoading(btn, on) {
   if (!btn) return;
   if (on) { btn.dataset.orig = btn.innerHTML; btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true; }
   else { btn.innerHTML = btn.dataset.orig || ''; btn.disabled = false; }
+}
+
+function showShimmer(containerId, height = '100px', count = 1) {
+  const container = $(containerId);
+  if (!container) return;
+  container.innerHTML = Array(count).fill(0).map(() => `<div class="shimmer" style="height:${height}; border-radius:12px; margin-bottom:10px; width:100%;"></div>`).join('');
 }
 
 function isEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
@@ -202,8 +212,16 @@ function buildSpec(pkg, area, camType, opts) {
   const dvrTotal = PRICES[dvrKey] || 0;
   const cableTotal = Math.round(cableM * PRICES[pkg.cable]);
   const poeTotal = PRICES[poeKey] || 0;
-  const hddTotal = PRICES[pkg.hdd];
+
+  const gbPerDay = pkg.id === 'premium' ? 60 : pkg.id === 'standard' ? 30 : 15;
+  const totalGbNeeded = camCount * gbPerDay * (opts.archiveDays || 14);
+  let hddKey = 'hdd_budget';
+  if (totalGbNeeded > 1000) hddKey = 'hdd_standard';
+  if (totalGbNeeded > 2000) hddKey = 'hdd_premium';
+  const hddTotal = PRICES[hddKey];
+
   const micTotal = opts.soundRecord ? PRICES.mic * (camCount <= 4 ? 1 : 2) : 0;
+  const internetTotal = opts.hasInternet ? (PRICES.router_4g || 6500) : 0;
 
   // Labor calculation with Moscow rates & margin
   const baseInstall = PRICES[pkg.install] * camCount;
@@ -216,14 +234,6 @@ function buildSpec(pkg, area, camType, opts) {
   // Применяем маржу 8% на работы и округляем до 100 рублей
   laborTotal = Math.round((laborTotal * 1.08) / 100) * 100;
 
-  const equipment = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal;
-  let total = equipment + laborTotal;
-
-  // VIP Discount: 5% off if 3+ orders
-  if (state.orderCount >= 3) {
-    total = Math.round(total * 0.95);
-  }
-
   const chCount = camCount <= 4 ? '4-канальный' : camCount <= 8 ? '8-канальный' : '16-канальный';
 
   const items = [
@@ -231,12 +241,19 @@ function buildSpec(pkg, area, camType, opts) {
     { name: 'Видеорегистратор ' + chCount, spec: 'H.265+, запись 24/7, удалённый доступ', price: dvrTotal, qty: 1, icon: '🖥️' },
     { name: 'Кабель витая пара', spec: cableM + 'м (расчёт по площади ' + area + 'м²)', price: cableTotal, qty: 1, icon: '🔌' },
     { name: 'PoE-коммутатор ' + chCount.replace('Видеорегистратор ', ''), spec: '802.3af/at, до 30Вт/порт', price: poeTotal, qty: 1, icon: '⚡' },
-    { name: 'HDD для видеонаблюдения', spec: pkg.id === 'budget' ? '1ТБ — ~7 суток записи' : pkg.id === 'standard' ? '2ТБ — ~14 суток записи' : '4ТБ — ~30 суток записи', price: hddTotal, qty: 1, icon: '💾' },
+    { name: 'HDD для видеонаблюдения', spec: `Ёмкость под архив ${opts.archiveDays} дн.`, price: hddTotal, qty: 1, icon: '💾' },
   ];
   if (opts.soundRecord) items.push({ name: 'Микрофон всенаправленный', spec: 'до 10м, шумоподавление', price: micTotal, qty: camCount <= 4 ? 1 : 2, icon: '🎤' });
+  if (opts.hasInternet) items.push({ name: '4G-Интернет комплект', spec: 'Роутер + антенна + SIM', price: internetTotal, qty: 1, icon: '🌐' });
+  if (opts.maintenance) items.push({ name: 'Техническое обслуживание', spec: 'Ежемесячный выезд, чистка, проверка дисков', price: PRICES.maintenance, qty: 1, icon: '🛠️' });
   items.push({ name: 'Монтаж и настройка системы', spec: camCount + ' точек + NVR + кабель', price: laborTotal, qty: 1, icon: '🔧' });
 
-  return { items, equipment, laborTotal, total, camCount, cableM, pkg };
+  const equipmentTotal = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal + internetTotal;
+  let total = equipmentTotal + laborTotal + (opts.maintenance ? PRICES.maintenance : 0);
+
+  if (state.orderCount >= 3) total = Math.round(total * 0.95);
+
+  return { items, equipment: equipmentTotal, laborTotal, total, camCount, cableM, pkg, maintenance: opts.maintenance };
 }
 
 // ─── ОФОРМЛЕНИЕ ЗАКАЗА ────────────────────────────────────────────────────────
@@ -394,42 +411,64 @@ function closeFullMap() {
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
 async function renderAdmin() {
-  if (state.user?.role !== 'admin') {
-    showScreen('home');
-    return;
+  if (state.user?.role !== 'admin') { showScreen('home'); return; }
+  if (!$('admin-tab-bound')) {
+    $$('.admin-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        haptic(); $$('.admin-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active');
+        $$('.admin-panel-tab').forEach(p => p.style.display = 'none');
+        $(`admin-tab-${tab.dataset.tab}`).style.display = 'block'; renderAdminContent(tab.dataset.tab);
+      });
+    });
+    const marker = document.createElement('div'); marker.id = 'admin-tab-bound'; document.body.appendChild(marker);
   }
-  try {
-    const orders = await StorageService.apiRequest('/admin/orders');
-    const logs = await StorageService.apiRequest('/admin/logs');
-    const prices = await StorageService.getPrices();
-
-    $('admin-prices-list').innerHTML = Object.entries(prices).map(([key, val]) => `
-      <div class="admin-price-row" style="display:flex; justify-content:space-between; margin-bottom:8px; background:var(--bg-card); padding:10px; border-radius:8px;">
-        <span style="font-size:14px;">${key}</span>
-        <input type="number" value="${val}" onchange="updatePrice('${key}', this.value)" style="width:80px; background:transparent; color:white; border:1px solid var(--glass-border); border-radius:4px; text-align:right;">
-      </div>
-    `).join('');
-
-    $('admin-orders-list').innerHTML = orders.map(o => `
-      <div class="admin-order-card" style="background:var(--bg-card); padding:12px; border-radius:12px; margin-bottom:10px; border-left:4px solid ${o.status === 'pending' ? 'var(--accent)' : 'var(--accent-2)'}">
-        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-          <span style="font-weight:bold;">#${esc(o.id)}</span>
-          <span style="font-size:12px; color:var(--text-muted);">${new Date(o.created_at).toLocaleDateString()}</span>
-        </div>
-        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${esc(o.full_name) || 'Anonymous'} - ${fmt(o.total_price)}</div>
-        <button onclick="blockUser(${o.user_id})" style="font-size:10px; padding:4px 8px; border-radius:4px; background:#ff4d4d; border:none; color:white; cursor:pointer;">Block User</button>
-      </div>
-    `).join('');
-
-    $('admin-logs-list').innerHTML = logs.map(l => `
-      <div class="admin-log-row" style="font-size:12px; color:${l.level === 'error' ? '#ff4d4d' : 'var(--text-secondary)'}; margin-bottom:4px; padding:4px; border-bottom:1px solid var(--glass-border);">
-        [${new Date(l.created_at).toLocaleTimeString()}] ${esc(l.message)}
-      </div>
-    `).join('');
-  } catch (e) {
-    toast('Ошибка загрузки админки: ' + e.message, 'error');
-  }
+  renderAdminContent('stats');
 }
+
+async function renderAdminContent(tab) {
+  try {
+    if (tab === 'stats') {
+      showShimmer('admin-stats-container', '80px', 4);
+      const stats = await StorageService.getAdminStats();
+      $('admin-stats-container').innerHTML = `
+        <div class="stat-box"><div class="stat-box-label">Выручка</div><div class="stat-box-value">${fmt(stats.total_revenue)}</div></div>
+        <div class="stat-box"><div class="stat-box-label">Заказы</div><div class="stat-box-value">${stats.total_orders}</div></div>
+        <div class="stat-box"><div class="stat-box-label">Клиенты</div><div class="stat-box-value">${stats.total_users}</div></div>
+        <div class="stat-box"><div class="stat-box-label">За неделю</div><div class="stat-box-value">+${stats.recent_orders}</div></div>`;
+
+      initAdminChart(stats.history);
+    }
+    if (tab === 'orders') {
+      showShimmer('admin-orders-list', '120px', 3);
+      const orders = await StorageService.apiRequest('/admin/orders');
+      $('admin-orders-list').innerHTML = orders.map(o => `
+        <div class="admin-order-card" style="background:var(--bg-card); padding:12px; border-radius:12px; margin-bottom:10px; border-left:4px solid var(--accent)">
+          <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span style="font-weight:bold;">#${esc(o.id)}</span><span class="status-badge status-${o.status}">${o.status}</span></div>
+          <div style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">${esc(o.full_name)} <br> ${esc(o.phone || '—')} <br> <b>${fmt(o.total_price)}</b></div>
+          <div style="display:flex; gap:6px;">
+            <button onclick="updateOrderStatus('${o.id}', 'processing')" style="font-size:10px; padding:4px 8px; border-radius:4px; background:var(--accent); border:none; color:var(--bg-primary);">В работу</button>
+            <button onclick="updateOrderStatus('${o.id}', 'completed')" style="font-size:10px; padding:4px 8px; border-radius:4px; background:var(--accent-2); border:none; color:var(--bg-primary);">Готов</button>
+            <button onclick="blockUser(${o.user_id})" style="font-size:10px; padding:4px 8px; border-radius:4px; background:#ff4d4d; border:none; color:white;">Блок</button>
+          </div>
+        </div>`).join('');
+    }
+    if (tab === 'prices') {
+      const prices = await StorageService.getPrices();
+      $('admin-prices-list').innerHTML = Object.entries(prices).map(([key, val]) => `
+        <div class="admin-price-row" style="display:flex; justify-content:space-between; margin-bottom:8px; background:var(--bg-card); padding:10px; border-radius:8px;">
+          <span style="font-size:13px; color:var(--text-secondary)">${key}</span>
+          <input type="number" value="${val}" onchange="updatePrice('${key}', this.value)" style="width:80px; background:transparent; color:white; border:1px solid var(--glass-border); border-radius:4px; text-align:right;">
+        </div>`).join('');
+    }
+    const logs = await StorageService.apiRequest('/admin/logs');
+    $('admin-logs-list').innerHTML = logs.map(l => `<div class="admin-log-row" style="font-size:11px; color:${l.level === 'error' ? '#ff4d4d' : 'var(--text-muted)'}; margin-bottom:4px; padding:4px; border-bottom:1px solid var(--glass-border);">[${new Date(l.created_at).toLocaleTimeString()}] ${esc(l.message)}</div>`).join('');
+  } catch (e) { toast('Ошибка загрузки: ' + e.message, 'error'); }
+}
+
+window.updateOrderStatus = async (orderId, status) => {
+  try { await StorageService.updateOrderStatus(orderId, status); toast('Статус обновлен'); renderAdminContent('orders'); }
+  catch (e) { toast(e.message, 'error'); }
+};
 
 window.updatePrice = async (key, val) => {
   try {
@@ -439,6 +478,50 @@ window.updatePrice = async (key, val) => {
     toast('Ошибка обновления: ' + e.message, 'error');
   }
 };
+
+let adminChartInstance = null;
+function initAdminChart(history) {
+  const ctx = $('adminRevenueChart');
+  if (!ctx) return;
+
+  if (adminChartInstance) adminChartInstance.destroy();
+
+  const labels = history.map(h => h.date);
+  const data = history.map(h => h.revenue);
+
+  adminChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Выручка (₽)',
+        data,
+        borderColor: '#00f2ff',
+        backgroundColor: 'rgba(0, 242, 255, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
 
 window.blockUser = async (userId) => {
   const reason = prompt('Reason for blocking?');
@@ -813,6 +896,13 @@ function bindCalculator() {
   });
 
   $('btn-calc2-back')?.addEventListener('click', () => { haptic('light'); renderCalcStep(1); });
+  $$('.days-hint').forEach(h => {
+    h.addEventListener('click', () => {
+      haptic('light'); state.calc.archiveDays = parseInt(h.dataset.val);
+      $$('.days-hint').forEach(x => x.classList.remove('active')); h.classList.add('active');
+    });
+  });
+
   $('btn-calc2-next')?.addEventListener('click', () => {
     haptic('medium');
     if (!state.calc.package) { toast('Выберите пакет', 'error'); return; }
@@ -841,7 +931,10 @@ function buildAndShowResult() {
   const pkg = PACKAGES[state.calc.package];
   const spec = buildSpec(pkg, state.calc.area, state.calc.cameraType, {
     soundRecord: state.calc.soundRecord,
-    motionDetect: state.calc.motionDetect
+    motionDetect: state.calc.motionDetect,
+    hasInternet: state.calc.hasInternet,
+    archiveDays: state.calc.archiveDays,
+    maintenance: state.calc.maintenance
   });
   state.calc.result = spec;
 
@@ -914,9 +1007,24 @@ function renderProfile() {
   const editName = $('edit-name'); if (editName) editName.value = u.full_name || '';
   const editPhone = $('edit-phone'); if (editPhone) editPhone.value = u.phone || '';
   const editAddr = $('edit-address'); if (editAddr) editAddr.value = u.address || '';
+
+  StorageService.getReferralData().then(data => {
+    if (data) { $('ref-bonus-display').textContent = fmt(data.balance); state.referralCode = data.code; }
+  }).catch(() => {});
 }
 
 function bindProfile() {
+  $('btn-share-ref')?.addEventListener('click', () => {
+    haptic('medium'); if (!state.referralCode) return;
+    const botUser = 'gaze_video_bot';
+    const link = `https://t.me/${botUser}/app?startapp=${state.referralCode}`;
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Привет! Пользуюсь крутым конструктором видеонаблюдения Gaze. Попробуй сам!')}`);
+    } else {
+      navigator.clipboard.writeText(link); toast('Ссылка скопирована в буфер обмена');
+    }
+  });
+
   $('btn-edit-profile')?.addEventListener('click', () => {
     haptic();
     $('profile-main-view').style.display = 'none';
@@ -1047,7 +1155,7 @@ function bindAll() {
   $('btn-new-order')?.addEventListener('click', () => {
     haptic();
     $('order-success').classList.remove('show');
-    state.calc = { area: 0, cameraType: null, package: null, soundRecord: false, motionDetect: false, result: null };
+    state.calc = { area: 0, cameraType: null, package: null, soundRecord: false, motionDetect: false, hasInternet: false, maintenance: false, result: null };
     $$('.cam-type-card').forEach(c => c.classList.remove('selected'));
     $$('.pkg-card').forEach(c => c.classList.remove('selected'));
     $$('.option-checkbox').forEach(r => r.classList.remove('checked'));
@@ -1089,7 +1197,7 @@ function bindAll() {
 
 // ─── ЗАПУСК ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
-window.App = { init };
+window.App = { init, state, showScreen, renderAdmin, renderProfile };
 
 document.addEventListener('DOMContentLoaded', () => {
   ['home-pkg-budget','home-pkg-standard','home-pkg-premium'].forEach(id => {
