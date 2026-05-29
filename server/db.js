@@ -96,6 +96,9 @@ const initDb = async () => {
       role VARCHAR(50) DEFAULT 'user',
       is_blocked TINYINT(1) DEFAULT 0,
       block_reason ${textType},
+      referral_code VARCHAR(50) UNIQUE,
+      invited_by BIGINT,
+      bonus_balance INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS orders (
@@ -127,6 +130,7 @@ const initDb = async () => {
       user_id INTEGER,
       sender VARCHAR(50),
       text ${textType},
+      is_read TINYINT(1) DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`
   ];

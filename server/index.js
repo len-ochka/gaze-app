@@ -119,6 +119,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 app.post('/api/auth/sync', authMiddleware, (req, res) => {
   const { id, username, first_name, last_name } = req.tgUser;
+  const { start_param } = req.body;
   const fullName = [first_name, last_name].filter(Boolean).join(' ');
   const isAdminById = ADMIN_IDS.includes(id);
 
@@ -129,12 +130,16 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
       db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
         const isFirst = !err && row.count === 0;
         let role = (isFirst || isAdminById) ? 'admin' : 'user';
+        const referralCode = crypto.randomBytes(4).toString('hex');
 
-        db.run('INSERT INTO users (tg_id, username, full_name, role) VALUES (?, ?, ?, ?)',
-          [id, username, fullName, role],
+        let invitedBy = null;
+        if (start_param && /^[a-f0-9]{8}$/.test(start_param)) invitedBy = start_param;
+
+        db.run('INSERT INTO users (tg_id, username, full_name, role, referral_code, invited_by) VALUES (?, ?, ?, ?, ?, (SELECT tg_id FROM users WHERE referral_code = ?))',
+          [id, username, fullName, role, referralCode, invitedBy],
           function(err) {
             if (err) return res.status(500).json({ error: err.message });
-            db.get('SELECT * FROM users WHERE id = ?', [this.lastID], (err, newUser) => {
+            db.get('SELECT u.*, 0 as order_count FROM users u WHERE u.id = ?', [this.lastID], (err, newUser) => {
               res.json(newUser);
             });
           }
@@ -195,6 +200,11 @@ app.post('/api/orders', authMiddleware, (req, res) => {
 
         const text = `🚀 <b>НОВАЯ ЗАЯВКА #${id}</b>\n\n👤 Клиент: ${user.full_name}\n📞 Тел: <code>${user.phone || 'не указан'}</code>\n📍 Адрес: ${user.address || 'не указан'}\n📐 Площадь: ${area} м²\n💰 Сумма: <b>${total_price} ₽</b>`;
 
+        if (user.invited_by) {
+          const bonus = Math.floor(total_price * 0.01);
+          db.run('UPDATE users SET bonus_balance = bonus_balance + ? WHERE tg_id = ?', [bonus, user.invited_by]);
+        }
+
         // Подтверждение пользователю
         sendTelegramMessage(user.tg_id, text);
 
@@ -216,9 +226,43 @@ app.post('/api/orders', authMiddleware, (req, res) => {
 });
 
 app.get('/api/admin/orders', authMiddleware, adminMiddleware, (req, res) => {
-  db.all('SELECT o.*, u.full_name FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC', [], (err, rows) => {
+  db.all('SELECT o.*, u.full_name, u.phone FROM orders o JOIN users u ON o.user_id = u.id ORDER BY o.created_at DESC', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
+  });
+});
+
+app.get('/api/admin/stats', authMiddleware, adminMiddleware, (req, res) => {
+  const recentDate = db.isMySQL ? 'DATE_SUB(NOW(), INTERVAL 7 DAY)' : "date('now', '-7 days')";
+
+  const statsQuery = `
+    SELECT
+      COALESCE((SELECT SUM(total_price) FROM orders WHERE status != 'cancelled'), 0) as total_revenue,
+      (SELECT COUNT(*) FROM orders) as total_orders,
+      (SELECT COUNT(*) FROM users) as total_users,
+      (SELECT COUNT(*) FROM orders WHERE created_at > ${recentDate}) as recent_orders
+  `;
+
+  // History for charts
+  const historyQuery = db.isMySQL
+    ? `SELECT DATE(created_at) as date, SUM(total_price) as revenue FROM orders WHERE created_at > DATE_SUB(NOW(), INTERVAL 14 DAY) GROUP BY DATE(created_at) ORDER BY date`
+    : `SELECT date(created_at) as date, SUM(total_price) as revenue FROM orders WHERE created_at > date('now', '-14 days') GROUP BY date(created_at) ORDER BY date`;
+
+  db.get(statsQuery, [], (err, stats) => {
+    if (err) return res.status(500).json({ error: err.message });
+
+    db.all(historyQuery, [], (err, history) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ ...stats, history });
+    });
+  });
+});
+
+app.post('/api/admin/orders/status', authMiddleware, adminMiddleware, (req, res) => {
+  const { orderId, status } = req.body;
+  db.run('UPDATE orders SET status = ? WHERE id = ?', [status, orderId], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true });
   });
 });
 
@@ -255,6 +299,16 @@ app.get('/api/chat', authMiddleware, (req, res) => {
     db.all('SELECT * FROM messages WHERE user_id = ? ORDER BY created_at ASC', [user.id], (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
+    });
+  });
+});
+
+app.get('/api/user/referrals', authMiddleware, (req, res) => {
+  db.get('SELECT referral_code, bonus_balance FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
+    if (err || !user) return res.status(404).json({ error: 'User not found' });
+    db.all('SELECT full_name, created_at FROM users WHERE invited_by = ?', [req.tgUser.id], (err, invites) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ code: user.referral_code, balance: user.bonus_balance, invites });
     });
   });
 });
