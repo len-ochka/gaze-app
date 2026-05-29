@@ -243,7 +243,7 @@ app.get('/api/admin/stats', authMiddleware, adminMiddleware, (req, res) => {
       (SELECT COUNT(*) FROM orders WHERE created_at > ${recentDate}) as recent_orders
   `;
 
-  // History for charts
+  // История для графиков
   const historyQuery = db.isMySQL
     ? `SELECT DATE(created_at) as date, SUM(total_price) as revenue FROM orders WHERE created_at > DATE_SUB(NOW(), INTERVAL 14 DAY) GROUP BY DATE(created_at) ORDER BY date`
     : `SELECT date(created_at) as date, SUM(total_price) as revenue FROM orders WHERE created_at > date('now', '-14 days') GROUP BY date(created_at) ORDER BY date`;
