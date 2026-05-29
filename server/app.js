@@ -258,6 +258,16 @@ app.get('/api/admin/stats', authMiddleware, adminMiddleware, (req, res) => {
   });
 });
 
+app.get('/api/orders/history', authMiddleware, (req, res) => {
+  db.get('SELECT id FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
+    if (err || !user) return res.status(404).json({ error: 'User not found' });
+    db.all('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC', [user.id], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  });
+});
+
 app.post('/api/admin/orders/status', authMiddleware, adminMiddleware, (req, res) => {
   const { orderId, status } = req.body;
   db.run('UPDATE orders SET status = ? WHERE id = ?', [status, orderId], (err) => {
