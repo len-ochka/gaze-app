@@ -415,13 +415,6 @@
   border-radius: 20px;
 }
 
-.total-card {
-  background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(0,255,148,0.05));
-  border: 1px solid rgba(0,212,255,0.2);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  margin-top: 4px;
-}
 
 .total-row {
   display: flex;

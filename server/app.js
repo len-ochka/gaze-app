@@ -78,7 +78,7 @@ async function sendEmailFallback(orderData, user) {
 }
 
 function verifyTelegramWebAppData(initData) {
-  if (!initData) return null;
+  if (!initData || !BOT_TOKEN) return null;
   const urlParams = new URLSearchParams(initData);
   const hash = urlParams.get('hash');
   urlParams.delete('hash');
@@ -109,7 +109,7 @@ const authMiddleware = (req, res, next) => {
 };
 
 const adminMiddleware = (req, res, next) => {
-  db.get('SELECT role FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
+  getDb().get('SELECT role FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
     if (err || !user || user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
     next();
   });
@@ -127,7 +127,7 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
 
     if (!user) {
-      db.get('SELECT COUNT(*) as count FROM users', (err, row) => {
+      db.get('SELECT COUNT(*) as count FROM users', [], (err, row) => {
         const isFirst = !err && row.count === 0;
         let role = (isFirst || isAdminById) ? 'admin' : 'user';
         const referralCode = crypto.randomBytes(4).toString('hex');
@@ -206,16 +206,16 @@ app.post('/api/orders', authMiddleware, (req, res) => {
         }
 
         // Подтверждение пользователю
-        sendTelegramMessage(user.tg_id, text);
+        await sendTelegramMessage(user.tg_id, text);
 
         // Уведомление админов
-        db.all('SELECT tg_id FROM users WHERE role = "admin"', [], (err, admins) => {
+        db.all('SELECT tg_id FROM users WHERE role = "admin"', [], async (err, admins) => {
           if (!err && admins) {
-            admins.forEach(a => {
+            for (const a of admins) {
               if (a.tg_id !== user.tg_id) {
-                sendTelegramMessage(a.tg_id, `🔔 <b>ADMIN ALERT</b>\n${text}`);
+                await sendTelegramMessage(a.tg_id, `🔔 <b>ADMIN ALERT</b>\n${text}`);
               }
-            });
+            }
           }
         });
 

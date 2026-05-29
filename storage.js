@@ -23,9 +23,13 @@ const StorageService = (() => {
 
     const initData = window.TelegramService?.getInitData() || '';
     const headers = {
-      'Content-Type': 'application/json',
       'x-tg-init-data': initData
     };
+
+    // Добавляем Content-Type только если есть тело запроса
+    if (body !== null || method !== 'GET') {
+      headers['Content-Type'] = 'application/json';
+    }
 
     const options = {
       method,

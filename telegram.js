@@ -65,7 +65,7 @@ const TelegramService = (() => {
     const u = tg.initDataUnsafe.user;
     return {
       name: [u.first_name, u.last_name].filter(Boolean).join(' ') || 'Пользователь',
-      email: `tg_${u.id}@gaze.app`, // Псевдо-email для обратной совместимости
+      email: '',
       phone: '',
       address: '',
       tgId: u.id,
