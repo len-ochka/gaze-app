@@ -27,7 +27,7 @@ const StorageService = (() => {
     };
 
     // Добавляем Content-Type только если есть тело запроса
-    if (body !== null || method !== 'GET') {
+    if (method !== 'GET' && body !== null) {
       headers['Content-Type'] = 'application/json';
     }
 
