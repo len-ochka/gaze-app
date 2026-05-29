@@ -48,7 +48,8 @@ const PRICES = {
   cable_work: 100,          // Прокладка кабеля за метр
   mic: 1200,
   courier: 1000,
-  maintenance: 2500  // Ежемесячное ТО
+  maintenance: 2500,  // Ежемесячное ТО
+  router_4g: 6500
 };
 
 // ─── ПАКЕТЫ ───────────────────────────────────────────────────────────────────
@@ -280,7 +281,7 @@ async function doOrder() {
     package_id: state.calc.package,
     options: { soundRecord: state.calc.soundRecord, motionDetect: state.calc.motionDetect },
     spec: state.calc.result,
-    total_price: state.calc.result.total
+    total_price: state.calc.result?.total || 0
   };
 
   try {
@@ -386,12 +387,24 @@ function updateMapMarker(coords, address) {
         input.value = address;
         input.classList.remove('error');
     }
+
+    const confirmBtn = $('btn-map-confirm');
+    if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = 'Подтвердить';
+    }
 }
 
 /**
  * Обратное геокодирование координат в адрес с помощью Яндекс.Карт.
  */
 function getAddress(coords) {
+  const confirmBtn = $('btn-map-confirm');
+  if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<span class="spinner"></span>';
+  }
+
   // Пробуем найти ближайший дом
   ymaps.geocode(coords, { kind: 'house', results: 1 }).then(function (res) {
     let obj = res.geoObjects.get(0);
@@ -1269,19 +1282,20 @@ function bindAll() {
       closeFullMap();
       haptic('success');
     } else {
-      toast('Выберите адрес на карте', 'error');
+      toast('Пожалуйста, подождите, адрес определяется...', 'warning');
     }
   });
 }
 
 // ─── ЗАПУСК ───────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', init);
-window.App = { init, state, showScreen, renderAdmin, renderProfile };
-
 document.addEventListener('DOMContentLoaded', () => {
-  ['home-pkg-budget','home-pkg-standard','home-pkg-premium'].forEach(id => {
-    document.getElementById(id)?.addEventListener('click', () => {
-      showScreen('calculator');
+    init();
+
+    // Дополнительные обработчики для карточек на главной
+    ['home-pkg-budget','home-pkg-standard','home-pkg-premium'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', () => {
+        showScreen('calculator');
+      });
     });
-  });
 });
+window.App = { init, state, showScreen, renderAdmin, renderProfile };
