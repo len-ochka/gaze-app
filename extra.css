@@ -68,6 +68,13 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .compat-card { animation: slideIn 0.2s ease forwards; }
 
+/* Улучшенный прайс */
+.total-card {
+  background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(0,255,148,0.05));
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
 
 .shimmer {
   background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%);
@@ -96,38 +103,4 @@ input[type="number"] { -moz-appearance: textfield; }
   height: 250px;
   position: relative;
   overflow: hidden;
-}
-
-/* Improved price */
-.total-card {
-  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-xl);
-  padding: 24px;
-  margin: 20px 0;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-}
-
-.total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.total-label {
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.total-value {
-  font-family: var(--font-display);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.total-final {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px dashed var(--glass-border);
 }

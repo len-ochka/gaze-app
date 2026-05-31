@@ -11,6 +11,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
 
+// Инициализация БД перед запуском сервера
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
@@ -75,6 +76,7 @@ async function sendEmailFallback(orderData, user) {
 }
 
 function verifyTelegramWebAppData(initData) {
+  if (!initData || !BOT_TOKEN) return null;
   if (!BOT_TOKEN || !initData) return null;
   const urlParams = new URLSearchParams(initData);
   const hash = urlParams.get('hash');
