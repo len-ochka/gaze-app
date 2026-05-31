@@ -26,8 +26,8 @@ const StorageService = (() => {
       'x-tg-init-data': initData
     };
 
-    // Добавляем Content-Type только если есть тело запроса
-    if (body !== null || method !== 'GET') {
+    // Добавляем Content-Type только когда это не GET и есть тело запроса
+    if (method !== 'GET' && body !== null) {
       headers['Content-Type'] = 'application/json';
     }
 
@@ -110,6 +110,21 @@ const StorageService = (() => {
           if (cachedUser) {
             console.log('[StorageService] Используются кэшированные данные пользователя.');
             return cachedUser;
+          }
+          const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+          if (tgUser) {
+            console.log('[StorageService] Используются данные напрямую из Telegram.');
+            const fallbackUser = {
+              id: null,
+              tg_id: tgUser.id,
+              username: tgUser.username,
+              full_name: [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' '),
+              role: 'user',
+              order_count: 0,
+              is_fallback: true
+            };
+            set('user', fallbackUser);
+            return fallbackUser;
           }
           throw e;
         }
