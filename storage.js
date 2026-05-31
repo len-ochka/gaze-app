@@ -106,10 +106,28 @@ const StorageService = (() => {
         console.warn(`[StorageService] Попытка ${i + 1} не удалась:`, e.message);
 
         if (i === retries - 1) {
+          // 1. Попытка из кэша
           const cachedUser = get('user');
           if (cachedUser) {
             console.log('[StorageService] Используются кэшированные данные пользователя.');
             return cachedUser;
+          }
+
+          // 2. Попытка из Telegram.WebApp.initDataUnsafe (Fallback)
+          const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+          if (tgUser) {
+            console.log('[StorageService] Используются данные напрямую из Telegram.');
+            const fallbackUser = {
+              id: null,
+              tg_id: tgUser.id,
+              username: tgUser.username,
+              full_name: [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' '),
+              role: 'user',
+              order_count: 0,
+              is_fallback: true
+            };
+            set('user', fallbackUser);
+            return fallbackUser;
           }
           throw e;
         }
