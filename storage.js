@@ -106,14 +106,11 @@ const StorageService = (() => {
         console.warn(`[StorageService] Попытка ${i + 1} не удалась:`, e.message);
 
         if (i === retries - 1) {
-          // 1. Попытка из кэша
           const cachedUser = get('user');
           if (cachedUser) {
             console.log('[StorageService] Используются кэшированные данные пользователя.');
             return cachedUser;
           }
-
-          // 2. Попытка из Telegram.WebApp.initDataUnsafe (Fallback)
           const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
           if (tgUser) {
             console.log('[StorageService] Используются данные напрямую из Telegram.');
