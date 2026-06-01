@@ -156,6 +156,7 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
 });
 
 app.put('/api/user/profile', authMiddleware, (req, res) => {
+  if (!req.tgUser?.id) return res.status(401).json({ error: 'Not authenticated' });
   const { full_name, email, phone, address } = req.body;
   getDb().run('UPDATE users SET full_name = ?, email = ?, phone = ?, address = ? WHERE tg_id = ?',
     [full_name, email, phone, address, req.tgUser.id],

@@ -72,8 +72,13 @@
         </div>
       </div>
       <div class="auth-footer">
-        <p>Защищено шифрованием. Авторизуясь, вы принимаете условия оферты.</p>
-        <button id="btn-guest-login" class="btn-guest-link">Войти как гость</button>
+        <button id="btn-guest-enter" class="btn btn-secondary" style="width:100%; margin-bottom:16px; border-color:rgba(255,255,255,0.2); font-size:14px;">
+          👁 Продолжить как гость
+        </button>
+        <p style="font-size:11px; color:var(--text-muted); line-height:1.5;">
+          Гости могут рассчитать стоимость, но не могут оформлять заказы.<br>
+          <a href="#" id="btn-guest-link-tg" style="color:var(--accent);">Войти через Telegram →</a>
+        </p>
       </div>
     </div>
   </div>
@@ -85,9 +90,8 @@
         <span class="greeting">Привет,</span>
         <h1 id="home-username">Пользователь</h1>
       </div>
-      <div id="conn-status" style="font-size:10px; display:flex; align-items:center; gap:5px; background:rgba(0,255,148,0.1); color:var(--accent-2); padding:4px 10px; border-radius:20px; border:1px solid rgba(0,255,148,0.2);">
-         <div style="width:6px; height:6px; background:currentColor; border-radius:50%; box-shadow:0 0 5px currentColor;"></div>
-         <span>ONLINE</span>
+      <div id="conn-status" style="font-size:11px; display:flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; border:1px solid; cursor:pointer;">
+        <span id="conn-status-text">...</span>
       </div>
     </div>
     <div class="home-scroll">
@@ -152,6 +156,17 @@
   <!-- ══════════════ SUPPORT CHAT ══════════════ -->
   <div class="screen support-screen" id="screen-support">
     <div class="screen-header"><h2>Чат поддержки</h2></div>
+    <div id="engineer-card" style="background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(0,255,148,0.05));border:1px solid rgba(0,212,255,0.2);border-radius:16px;padding:16px;margin:20px;margin-bottom:0;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;">👷</div>
+        <div>
+          <div style="font-weight:700;font-size:15px;">Инженер на связи</div>
+          <div style="font-size:12px;color:var(--text-secondary);">Ответим в течение 15 минут</div>
+        </div>
+        <div style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 6px var(--accent-2);"></div>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Задайте любой вопрос по вашему заказу — уточним детали, согласуем время монтажа.</p>
+    </div>
     <div id="support-chat-messages" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:10px;">
       <div class="chat-msg system">Здравствуйте! Чат доступен после вашего первого заказа. Чем мы можем помочь?</div>
     </div>
@@ -329,6 +344,10 @@
               <div class="checkbox-desc">4G-роутер + антенна для удаленного доступа.</div>
             </div>
           </div>
+          <div id="internet-operators-panel" style="display:none; margin-top:12px; padding:14px; background:var(--bg-card); border:1px solid var(--glass-border); border-radius:14px;">
+            <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-secondary);">Выберите провайдера:</div>
+            <div id="operators-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
           <div class="checkbox-row option-checkbox" data-option="maintenance">
             <div class="custom-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
             <div class="checkbox-body">
@@ -367,6 +386,40 @@
           <p>Наш менеджер получил спецификацию и свяжется с вами в Telegram в течение 10 минут.</p>
           <div class="order-number-badge" id="order-id-display">#000000</div>
           <button class="btn btn-secondary" id="btn-new-order" style="margin-top:12px;width:100%;">Новый расчёт</button>
+        </div>
+
+        <div style="margin-top:16px; margin-bottom:8px;">
+          <button class="btn btn-secondary" id="btn-pro-mode" style="border-color:rgba(0,212,255,0.3); color:var(--accent); font-size:13px;">
+            🔧 Для профи — выбрать оборудование вручную
+          </button>
+        </div>
+
+        <div id="pro-mode-panel" style="display:none; margin-top:16px; animation: fadeIn 0.3s ease;">
+          <div class="section-title" style="margin-bottom:14px;">🔧 Ручной выбор оборудования</div>
+
+          <!-- CAMERAS -->
+          <div class="section-title" style="font-size:13px; margin-bottom:10px; color:var(--text-secondary);">📷 Камеры</div>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="pro-cameras-list">
+            <!-- populated by JS -->
+          </div>
+
+          <!-- DVR/NVR -->
+          <div class="section-title" style="font-size:13px; margin-bottom:10px; color:var(--text-secondary);">📼 Регистратор</div>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="pro-dvr-list">
+          </div>
+
+          <!-- HDD -->
+          <div class="section-title" style="font-size:13px; margin-bottom:10px; color:var(--text-secondary);">💾 Жёсткий диск</div>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="pro-hdd-list">
+          </div>
+
+          <div class="total-card" id="pro-total-card" style="margin-top:8px; margin-bottom:16px;">
+            <div class="total-row total-final">
+              <span class="total-label">Итого (профи):</span>
+              <span class="total-value" id="pro-total-price">0 ₽</span>
+            </div>
+          </div>
+          <button class="btn btn-accent" id="btn-pro-add-to-cart">🛒 Добавить в корзину</button>
         </div>
 
         <div class="step-footer-actions dual">
@@ -436,6 +489,11 @@
     </div>
 
     <div class="profile-view-wrap" id="profile-main-view">
+      <div id="guest-banner" style="display:none; background:rgba(255,165,0,0.08); border:1px solid rgba(255,165,0,0.25); border-radius:14px; padding:16px; margin-bottom:20px; text-align:center;">
+        <div style="font-size:15px; font-weight:700; margin-bottom:6px;">👤 Вы вошли как гость</div>
+        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">Войдите через Telegram чтобы сохранять заказы, получать уведомления и использовать реферальную программу</div>
+        <button class="btn btn-primary" id="btn-link-telegram" style="padding:12px;">🔗 Привязать Telegram аккаунт</button>
+      </div>
       <div class="profile-hero">
         <div class="profile-avatar">
           <span id="profile-initials">П</span>
@@ -466,15 +524,32 @@
          <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">У вас пока нет заказов</div>
       </div>
 
+      <div id="chat-engineer-btn-wrap" style="display:none; margin-bottom:20px;">
+        <button class="btn btn-accent" data-screen="support" style="gap:10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Чат с инженером
+        </button>
+      </div>
+
       <!-- Referral Program -->
-      <div class="section-title" style="margin-top:20px; margin-bottom:12px;">💎 Реферальная программа</div>
-      <div class="referral-card" style="background:var(--bg-card); border:1px solid var(--accent-dim); border-radius:16px; padding:16px; margin-bottom:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div style="font-size:14px; color:var(--text-secondary);">Ваш бонусный баланс:</div>
-          <div style="font-size:20px; font-weight:800; color:var(--accent-2);" id="ref-bonus-display">0 ₽</div>
+      <div class="referral-card" style="background:var(--bg-card);border:1px solid var(--accent-dim);border-radius:16px;padding:16px;margin-bottom:20px;margin-top:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-size:14px;font-weight:700;">💎 Реферальная программа</div>
+          <div style="font-size:18px;font-weight:800;color:var(--accent-2);" id="ref-bonus-display">0 ₽</div>
         </div>
-        <p style="font-size:12px; color:var(--text-muted); line-height:1.4; margin-bottom:16px;">Приглашайте друзей и получайте 1% от суммы их заказов на свой бонусный счет!</p>
-        <button class="btn btn-secondary" id="btn-share-ref" style="padding:10px; font-size:13px;">🎁 Пригласить друга</button>
+        <div style="background:var(--bg-secondary);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+          <div style="flex:1;font-family:monospace;font-size:13px;color:var(--accent);letter-spacing:1px;" id="ref-code-display">—</div>
+          <button id="btn-copy-ref-code" style="background:var(--accent-dim);border:none;border-radius:8px;padding:6px 12px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">Скопировать</button>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);line-height:1.4;margin-bottom:16px;">Отправьте реферальную ссылку другу. Когда он оформит заказ — вы получите <b style="color:var(--accent-2);">1% от суммы</b> на бонусный баланс.</p>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary" id="btn-share-ref" style="padding:10px;font-size:13px;flex:1;">📤 Отправить ссылку</button>
+          <button class="btn btn-secondary" id="btn-share-ref-tg" style="padding:10px;font-size:13px;flex:1;">✈️ Telegram</button>
+        </div>
+        <div id="ref-invites-section" style="margin-top:16px;display:none;">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Приглашённые пользователи:</div>
+          <div id="ref-invites-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
       </div>
 
       <div class="section-title" style="margin-bottom:12px;">⚠️ Личные данные</div>
@@ -531,6 +606,10 @@
           <input type="tel" id="edit-phone" placeholder="+7 (999) 000-00-00" autocomplete="tel">
         </div>
         <div class="input-group">
+          <label>📧 Email (для уведомлений)</label>
+          <input type="email" id="edit-email" placeholder="example@mail.ru" autocomplete="email">
+        </div>
+        <div class="input-group">
           <label>📍 Адрес объекта</label>
           <div style="display:flex; gap:8px; margin-bottom:8px;">
             <input type="text" id="edit-address" placeholder="Введите адрес вручную" style="flex:1;">
@@ -548,21 +627,47 @@
   <div class="screen guide-screen" id="screen-guide">
     <div class="screen-header"><h2>Гайд по технологиям</h2></div>
     <div class="faq-scroll" style="flex:1; overflow-y:auto; padding:20px;">
-      <div class="faq-item">
-        <h4>Что такое NVR и зачем он нужен?</h4>
-        <p>Network Video Recorder — это «мозг» системы. Он принимает сигнал от камер, записывает его на жесткий диск и обеспечивает вам доступ к архиву через смартфон из любой точки мира.</p>
+      <!-- CAMERAS section -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">📷 Камеры</div>
+        <div class="faq-item"><h4>Разрешение: 2МП / 4МП / 8МП (4K)</h4><p>2МП (1080p) — базовый уровень, подходит для общего наблюдения. 4МП — оптимум: детализация номеров авто, лиц. 8МП 4K — максимум, позволяет делать цифровой зум без потери качества.</p></div>
+        <div class="faq-item"><h4>Уличные vs купольные</h4><p>Уличные (bullet/turret) — мощная ИК-подсветка, видят далеко. Купольные — незаметны, защищены от вандализма, идеальны для помещений и входных групп.</p></div>
+        <div class="faq-item"><h4>ColorVu / Full Color</h4><p>Технология цветного ночного видения без прожектора. Использует сверхчувствительный сенсор и дополнительную линзу. Видеозапись в цвете даже при почти полной темноте.</p></div>
+        <div class="faq-item"><h4>PTZ камеры</h4><p>Pan-Tilt-Zoom — поворотные камеры с моторизованным зумом. Одна PTZ заменяет 3-4 фиксированных камеры. Умеют автоматически отслеживать движущийся объект.</p></div>
+        <div class="faq-item"><h4>AI-аналитика</h4><p>Распознавание лиц, номеров автомобилей, детекция вторжения в зону, подсчёт людей. Снижает нагрузку на оператора — система сама уведомит при нарушении.</p></div>
       </div>
-      <div class="faq-item">
-        <h4>Разрешение: 2МП vs 4K (8МП)</h4>
-        <p>2МП (1080p) достаточно, чтобы видеть общую картину. 4K позволяет детально рассмотреть лицо человека или номер автомобиля на значительном расстоянии при цифровом зуме.</p>
+
+      <!-- DVR/NVR section -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">📼 Регистраторы</div>
+        <div class="faq-item"><h4>NVR vs DVR</h4><p>NVR (сетевой) — работает с IP-камерами по витой паре через PoE. DVR — устаревший стандарт для аналоговых камер по коаксиалу. Мы устанавливаем только NVR.</p></div>
+        <div class="faq-item"><h4>Что такое PoE?</h4><p>Power over Ethernet — питание и видеосигнал по одному кабелю «витая пара». Один кабель вместо двух. Надёжнее, дешевле в монтаже, нет помех.</p></div>
+        <div class="faq-item"><h4>Сжатие H.265+</h4><p>Современный кодек экономит до 50% места на диске по сравнению с H.264. При том же качестве архив хранится вдвое дольше.</p></div>
+        <div class="faq-item"><h4>Удалённый доступ</h4><p>Все регистраторы Hikvision и Dahua поддерживают приложения iVMS-4500 / DMSS. Смотрите камеры в реальном времени с телефона из любой точки мира.</p></div>
       </div>
-      <div class="faq-item">
-        <h4>Преимущества PoE питания</h4>
-        <p>Power over Ethernet позволяет передавать и данные, и электричество по одному кабелю «витая пара». Это надежнее, упрощает монтаж и исключает помехи, характерные для старых аналоговых систем.</p>
+
+      <!-- HDD section -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">💾 Хранение</div>
+        <div class="faq-item"><h4>WD Purple vs обычный HDD</h4><p>Обычные диски не предназначены для непрерывной записи 24/7. WD Purple и Seagate SkyHawk специально оптимизированы: выдерживают 3+ года непрерывной работы.</p></div>
+        <div class="faq-item"><h4>Расчёт объёма</h4><p>1 камера 4МП H.265+ ≈ 8-12 ГБ/сутки. На 4 камеры 14 дней = ~600 ГБ. Рекомендуем диски с запасом: берите следующий типоразмер.</p></div>
+        <div class="faq-item"><h4>RAID-массивы</h4><p>Для объектов с критичным архивом (банки, склады) рекомендуем RAID-1: два диска зеркалируют друг друга. При выходе одного — данные не теряются.</p></div>
       </div>
-      <div class="faq-item">
-        <h4>Глубина архива и HDD</h4>
-        <p>Мы используем диски серии WD Purple или Seagate SkyHawk, оптимизированные для работы 24/7. Рекомендуемый архив — от 14 дней. При заполнении диска старые записи заменяются новыми автоматически.</p>
+
+      <!-- Networking section -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">🌐 Интернет и сеть</div>
+        <div class="faq-item"><h4>Кабельный интернет для системы</h4><p>Оптимальный вариант. Стабильный канал, не зависит от погоды. Рекомендуем выделенный роутер для системы видеонаблюдения.</p></div>
+        <div class="faq-item"><h4>4G-роутер как резерв</h4><p>Если кабельный интернет пропадёт — система автоматически переключится на 4G. Мы устанавливаем роутеры с поддержкой двух SIM-карт.</p></div>
+        <div class="faq-item"><h4>VPN и безопасность</h4><p>Для корпоративных объектов рекомендуем VPN-туннель вместо проброса портов. Это защищает систему от взлома извне.</p></div>
+      </div>
+
+      <!-- Mounting section -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">🔧 Монтаж</div>
+        <div class="faq-item"><h4>Кабель: витая пара vs коаксиал</h4><p>Мы используем только витую пару (Cat5e/Cat6) — универсальный стандарт для IP-систем. PoE по Cat6 до 100 метров без усилителей.</p></div>
+        <div class="faq-item"><h4>Скрытый монтаж</h4><p>Прокладка кабеля в кабель-каналах или за гипсокартоном. Обсуждается при выезде инженера на объект.</p></div>
+        <div class="faq-item"><h4>Гарантия на монтаж</h4><p>12 месяцев на все монтажные работы. При обрыве или отказе соединений — бесплатный выезд и устранение.</p></div>
       </div>
     </div>
   </div>
