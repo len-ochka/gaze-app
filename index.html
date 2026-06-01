@@ -433,6 +433,30 @@
     </div><!-- end calc-scroll -->
   </div>
 
+  <!-- ══════════════ RESULT SCREEN ══════════════ -->
+  <div class="screen result-screen" id="screen-result">
+    <div class="mezen-header">
+      <div class="mezen-pattern mezen-horses"></div>
+      <h2>Итоговый расчёт</h2>
+      <div class="mezen-pattern mezen-spirals"></div>
+    </div>
+
+    <div class="mezen-content">
+      <div class="mezen-card" id="mezen-result-card">
+        <!-- populated by JS -->
+      </div>
+
+      <div class="mezen-actions">
+        <button class="btn btn-primary mezen-btn" onclick="doOrder()" id="btn-mezen-order">
+          Оформить заказ
+        </button>
+        <button class="btn btn-secondary mezen-btn" onclick="showScreen('calculator')">
+          Изменить параметры
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══════════════ ADMIN PANEL ══════════════ -->
   <div class="screen admin-screen" id="screen-admin">
     <div class="screen-header"><h2>Админ-панель</h2></div>

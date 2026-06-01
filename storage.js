@@ -140,10 +140,17 @@ const StorageService = (() => {
    * Updates user profile data.
    */
   async function updateUserProfile(profile) {
-    await apiRequest('/user/profile', 'PUT', profile);
     const currentUser = get('user') || {};
     const updatedUser = { ...currentUser, ...profile };
-    set('user', updatedUser);
+    set('user', updatedUser); // Optimistic local update
+
+    try {
+      await apiRequest('/user/profile', 'PUT', profile);
+    } catch (e) {
+      console.error('[StorageService] Failed to sync profile to server:', e);
+      // We keep the local version but the user is notified by the caller
+      throw e;
+    }
     return updatedUser;
   }
 
