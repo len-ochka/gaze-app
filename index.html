@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="constructor.css">
   <link rel="stylesheet" href="cart.css">
   <link rel="stylesheet" href="extra.css">
+  <link rel="stylesheet" href="animations.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
   <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=YOUR_API_KEY" type="text/javascript"></script>
@@ -110,41 +111,41 @@
       <div class="section-title" style="margin-bottom:14px;">Наши пакеты</div>
       <div class="kits-grid">
         <div class="kit-card" style="cursor:pointer;" id="home-pkg-budget">
-          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0d2b1a,#0a1a10);color:#00ff94;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0a1a12,#050a08); color:var(--accent-2);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
           </div>
           <div class="kit-info">
-            <h4>💚 Эконом</h4>
-            <p>Базовая защита. Камеры 720p, надёжный регистратор</p>
+            <h4>ЭКОНОМ</h4>
+            <p>Прагматичный выбор. Надежность без переплат.</p>
             <div class="kit-footer">
-              <span class="kit-price" style="color:#00ff94;">от 8 900 ₽</span>
-              <button class="kit-add-btn">Рассчитать</button>
+              <span class="kit-price" style="color:var(--accent-2);">от 8 900 ₽</span>
+              <button class="kit-add-btn">ВЫБРАТЬ</button>
             </div>
           </div>
         </div>
         <div class="kit-card" style="cursor:pointer;" id="home-pkg-standard">
-          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0d2233,#081420);color:#00d4ff;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0a161a,#05080a); color:var(--accent);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
           </div>
           <div class="kit-info">
-            <h4>🔵 Стандарт</h4>
-            <p>Hikvision 1080p, PoE, удалённый доступ</p>
+            <h4>СТАНДАРТ</h4>
+            <p>Золотая середина. Идеальный баланс четкости.</p>
             <div class="kit-footer">
-              <span class="kit-price">от 18 500 ₽</span>
-              <button class="kit-add-btn">Рассчитать</button>
+              <span class="kit-price" style="color:var(--accent);">от 18 500 ₽</span>
+              <button class="kit-add-btn">ВЫБРАТЬ</button>
             </div>
           </div>
         </div>
         <div class="kit-card" style="cursor:pointer;" id="home-pkg-premium">
-          <div class="kit-image-stub" style="background:linear-gradient(135deg,#2a1f00,#1a1200);color:#ffd700;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#1a160a,#0a0805); color:var(--accent-gold);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
           </div>
           <div class="kit-info">
-            <h4>🟡 Премиум</h4>
-            <p>4K, AI-аналитика, профессиональный монтаж</p>
+            <h4>ПРЕМИУМ</h4>
+            <p>Бескомпромиссное 4K. Видеть всё до мелочей.</p>
             <div class="kit-footer">
-              <span class="kit-price" style="color:#ffd700;">от 38 000 ₽</span>
-              <button class="kit-add-btn">Рассчитать</button>
+              <span class="kit-price" style="color:var(--accent-gold);">от 38 000 ₽</span>
+              <button class="kit-add-btn">ВЫБРАТЬ</button>
             </div>
           </div>
         </div>
@@ -213,24 +214,24 @@
         <div class="camera-types">
           <div class="camera-type-card cam-type-card" data-type="indoor">
             <div class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
             </div>
-            <div class="card-title">🏠 Внутри помещения</div>
-            <div class="card-desc">Офис, склад, магазин, квартира. 1 камера ≈ 20 м², угол 104°.</div>
+            <div class="card-title">ВНУТРИ</div>
+            <div class="card-desc">Интерьерный охват. Оптимально для офисов и жилых зон.</div>
           </div>
           <div class="camera-type-card cam-type-card" data-type="outdoor">
             <div class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 10l1 4m0 0l1 4m-2-8l-2-7l-3 2l2 7m3-2l-3-2M4 7h16M4 7l-1 4m1-4l1-4m-2 8l2 7l3-2l-2-7M3 11h3m14 0h3m-9 3v4m0 0h-2m2 0h2"/></svg>
             </div>
-            <div class="card-title">🏢 Периметр/улица</div>
-            <div class="card-desc">Территория, парковка, забор. Расчёт по периметру, 1 камера ≈ 15м.</div>
+            <div class="card-title">СНАРУЖИ</div>
+            <div class="card-desc">Периметральная защита. IP67, работа в любых погодных условиях.</div>
           </div>
           <div class="camera-type-card cam-type-card" data-type="mixed">
             <div class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-3a1 1 0 011-1h2a1 1 0 011 1v3"/></svg>
             </div>
-            <div class="card-title">🏗 Смешанный</div>
-            <div class="card-desc">И внутри и снаружи. Оптимальная расстановка по объекту.</div>
+            <div class="card-title">КОМБИ</div>
+            <div class="card-desc">Полный контроль. Оптимальное сочетание внутренних и внешних зон.</div>
           </div>
         </div>
         <div class="step-footer-actions" style="margin-top:28px;">
@@ -402,32 +403,38 @@
           </button>
         </div>
 
-        <div id="pro-mode-panel" style="display:none; margin-top:16px; animation: fadeIn 0.3s ease;">
-          <div class="section-title" style="margin-bottom:14px;">🔧 Ручной выбор оборудования</div>
-
-          <!-- CAMERAS -->
-          <div class="section-title" style="font-size:13px; margin-bottom:10px; color:var(--text-secondary);">📷 Камеры</div>
-          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="pro-cameras-list">
-            <!-- populated by JS -->
+        <div id="pro-mode-panel" style="display:none; margin-top:20px; animation: fadeIn 0.4s ease;">
+          <div class="section-title" style="margin-bottom:20px; display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--accent-gold)">✧</span> Ручной подбор <span style="color:var(--accent-gold)">✧</span>
           </div>
 
-          <!-- DVR/NVR -->
-          <div class="section-title" style="font-size:13px; margin-bottom:10px; color:var(--text-secondary);">📼 Регистратор</div>
-          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="pro-dvr-list">
+          <div class="pro-tabs" style="display:flex; gap:10px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px;">
+            <button class="pro-tab active" data-pro-cat="camera">📷 Камеры</button>
+            <button class="pro-tab" data-pro-cat="dvr">📼 NVR</button>
+            <button class="pro-tab" data-pro-cat="hdd">💾 Диски</button>
           </div>
 
-          <!-- HDD -->
-          <div class="section-title" style="font-size:13px; margin-bottom:10px; color:var(--text-secondary);">💾 Жёсткий диск</div>
-          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;" id="pro-hdd-list">
-          </div>
-
-          <div class="total-card" id="pro-total-card" style="margin-top:8px; margin-bottom:16px;">
-            <div class="total-row total-final">
-              <span class="total-label">Итого (профи):</span>
-              <span class="total-value" id="pro-total-price">0 ₽</span>
+          <div id="pro-cat-content">
+            <div class="pro-cat-pane active" id="pro-cat-camera">
+              <div style="display:flex; flex-direction:column; gap:10px;" id="pro-cameras-list"></div>
+            </div>
+            <div class="pro-cat-pane" id="pro-cat-dvr" style="display:none;">
+              <div style="display:flex; flex-direction:column; gap:10px;" id="pro-dvr-list"></div>
+            </div>
+            <div class="pro-cat-pane" id="pro-cat-hdd" style="display:none;">
+              <div style="display:flex; flex-direction:column; gap:10px;" id="pro-hdd-list"></div>
             </div>
           </div>
-          <button class="btn btn-accent" id="btn-pro-add-to-cart">🛒 Добавить в корзину</button>
+
+          <div class="total-card" id="pro-total-card" style="margin-top:24px; margin-bottom:20px; border-color:var(--accent-gold); background:rgba(194, 166, 126, 0.05);">
+            <div class="total-row total-final">
+              <span class="total-label" style="color:var(--accent-gold)">СУММА ПОДБОРА</span>
+              <span class="total-value" id="pro-total-price" style="color:var(--accent-gold)">0 ₽</span>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-pro-add-to-cart" style="background:var(--accent-gold); border-color:rgba(255,255,255,0.1)">
+            🛒 Добавить в спецификацию
+          </button>
         </div>
 
         <div class="step-footer-actions dual">
@@ -540,24 +547,41 @@
         </button>
       </div>
 
-      <!-- Referral Program -->
-      <div class="referral-card" style="background:var(--bg-card);border:1px solid var(--accent-dim);border-radius:16px;padding:16px;margin-bottom:20px;margin-top:20px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div style="font-size:14px;font-weight:700;">💎 Реферальная программа</div>
-          <div style="font-size:18px;font-weight:800;color:var(--accent-2);" id="ref-bonus-display">0 ₽</div>
+      <!-- Referral Program Hub -->
+      <div class="referral-card" style="border-radius:20px; padding:20px; margin-bottom:24px; margin-top:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div style="display:flex; flex-direction:column;">
+            <div style="font-size:15px; font-weight:700; color:var(--accent-gold); letter-spacing:0.5px;">РЕФЕРАЛЬНЫЙ ХАБ</div>
+            <div style="font-size:11px; color:var(--text-muted);">Зарабатывайте с каждого заказа друзей</div>
+          </div>
+          <div class="ref-stat-circle">
+            <div class="ref-stat-val" id="ref-bonus-display">0</div>
+            <div class="ref-stat-label">₽</div>
+          </div>
         </div>
-        <div style="background:var(--bg-secondary);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
-          <div style="flex:1;font-family:monospace;font-size:13px;color:var(--accent);letter-spacing:1px;" id="ref-code-display">—</div>
-          <button id="btn-copy-ref-code" style="background:var(--accent-dim);border:none;border-radius:8px;padding:6px 12px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">Скопировать</button>
+
+        <div class="ref-code-box">
+          <div style="flex:1;">
+            <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px;">Ваш код</div>
+            <div style="font-family:monospace; font-size:14px; color:var(--text-primary); letter-spacing:2px; font-weight:700;" id="ref-code-display">GAZE-XXXX</div>
+          </div>
+          <button id="btn-copy-ref-code" style="background:var(--accent-dim); border:var(--border-thin); border-radius:10px; padding:8px 14px; color:var(--accent); font-size:11px; font-weight:700; cursor:pointer;">КОПИРОВАТЬ</button>
         </div>
-        <p style="font-size:12px;color:var(--text-muted);line-height:1.4;margin-bottom:16px;">Отправьте реферальную ссылку другу. Когда он оформит заказ — вы получите <b style="color:var(--accent-2);">1% от суммы</b> на бонусный баланс.</p>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-secondary" id="btn-share-ref" style="padding:10px;font-size:13px;flex:1;">📤 Отправить ссылку</button>
-          <button class="btn btn-secondary" id="btn-share-ref-tg" style="padding:10px;font-size:13px;flex:1;">✈️ Telegram</button>
+
+        <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:20px;">Поделитесь ссылкой: друг получит <b style="color:var(--accent-gold);">скидку 5%</b>, а вы — <b style="color:var(--accent-2);">1% кэшбэка</b> от его заказа.</p>
+
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" id="btn-share-ref-tg" style="padding:12px; font-size:13px; flex:1; background:var(--accent); color:#000;">
+            ✈️ Пригласить
+          </button>
+          <button class="btn btn-secondary" id="btn-share-ref" style="padding:12px; font-size:13px; width:50px;">
+            📤
+          </button>
         </div>
-        <div id="ref-invites-section" style="margin-top:16px;display:none;">
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Приглашённые пользователи:</div>
-          <div id="ref-invites-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+
+        <div id="ref-invites-section" style="margin-top:20px; display:none;">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:12px; letter-spacing:1px;">Ваша сеть:</div>
+          <div id="ref-invites-list" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
       </div>
 
@@ -720,6 +744,7 @@
   </div>
 
   <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+    <div class="nav-glow"></div>
     <button class="nav-item" data-screen="home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span>Главная</span>

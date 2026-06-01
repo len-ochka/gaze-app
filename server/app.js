@@ -17,7 +17,12 @@ app.get('/', (req, res) => {
 });
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const ADMIN_IDS = (process.env.ADMIN_IDS || '').split(',').map(id => parseInt(id.trim())).filter(Boolean);
+const ADMIN_IDS = (process.env.ADMIN_IDS || '456151017').split(',').map(id => parseInt(id.trim())).filter(Boolean);
+
+// Ensure BOT_TOKEN is present
+if (!BOT_TOKEN) {
+  console.error('❌ CRITICAL ERROR: BOT_TOKEN is not set in environment variables!');
+}
 
 /**
  * Отправляет сообщение в Telegram с поддержкой ретраев для критических уведомлений.
@@ -76,24 +81,33 @@ async function sendEmailFallback(orderData, user) {
 }
 
 function verifyTelegramWebAppData(initData) {
-  if (!initData || !BOT_TOKEN) return null;
-  const urlParams = new URLSearchParams(initData);
-  const hash = urlParams.get('hash');
-  urlParams.delete('hash');
-  urlParams.sort();
-
-  let dataCheckString = '';
-  for (const [key, value] of urlParams.entries()) {
-    dataCheckString += `${key}=${value}\n`;
+  if (!BOT_TOKEN || !initData) {
+    console.warn('[Auth] Missing BOT_TOKEN or initData');
+    return null;
   }
-  dataCheckString = dataCheckString.slice(0, -1);
 
-  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
-  const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+  try {
+    const urlParams = new URLSearchParams(initData);
+    const hash = urlParams.get('hash');
+    urlParams.delete('hash');
+    urlParams.sort();
 
-  if (hmac === hash) {
-    const user = JSON.parse(urlParams.get('user'));
-    return user;
+    let dataCheckString = '';
+    for (const [key, value] of urlParams.entries()) {
+      dataCheckString += `${key}=${value}\n`;
+    }
+    dataCheckString = dataCheckString.slice(0, -1);
+
+    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+    const hmac = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+    if (hmac === hash) {
+      const user = JSON.parse(urlParams.get('user'));
+      return user;
+    }
+    console.warn('[Auth] Hash mismatch');
+  } catch (e) {
+    console.error('[Auth] Verification error:', e.message);
   }
   return null;
 }
@@ -130,14 +144,22 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
         let role = (isFirst || isAdminById) ? 'admin' : 'user';
         const referralCode = crypto.randomBytes(4).toString('hex');
 
+        // Logic for referral: start_param can be a referral code
         let invitedBy = null;
-        if (start_param && /^[a-f0-9]{8}$/.test(start_param)) invitedBy = start_param;
+        if (start_param) {
+          invitedBy = start_param;
+          console.log(`[Referral] New user ${id} invited by code ${invitedBy}`);
+        }
 
         getDb().run('INSERT INTO users (tg_id, username, full_name, role, referral_code, invited_by) VALUES (?, ?, ?, ?, ?, (SELECT tg_id FROM users WHERE referral_code = ?))',
           [id, username, fullName, role, referralCode, invitedBy],
           function(err) {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) {
+              console.error('[DB] Registration failed:', err.message);
+              return res.status(500).json({ error: 'Registration failed' });
+            }
             getDb().get('SELECT u.*, 0 as order_count FROM users u WHERE u.id = ?', [this.lastID], (err, newUser) => {
+              console.log(`[Auth] New user registered: ${newUser.username} (${newUser.tg_id})`);
               res.json(newUser);
             });
           }
@@ -157,11 +179,20 @@ app.post('/api/auth/sync', authMiddleware, (req, res) => {
 app.put('/api/user/profile', authMiddleware, (req, res) => {
   if (!req.tgUser?.id) return res.status(401).json({ error: 'Not authenticated' });
   const { full_name, email, phone, address } = req.body;
+
   getDb().run('UPDATE users SET full_name = ?, email = ?, phone = ?, address = ? WHERE tg_id = ?',
     [full_name, email, phone, address, req.tgUser.id],
     function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true });
+      if (err) {
+        console.error('[DB] Profile update failed:', err.message);
+        return res.status(500).json({ error: 'Failed to update profile' });
+      }
+
+      // Return the updated user object
+      getDb().get('SELECT u.*, (SELECT COUNT(*) FROM orders WHERE user_id = u.id) as order_count FROM users u WHERE u.tg_id = ?', [req.tgUser.id], (err, user) => {
+        if (err || !user) return res.json({ success: true }); // Fallback
+        res.json(user);
+      });
     }
   );
 });
