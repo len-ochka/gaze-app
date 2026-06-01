@@ -105,10 +105,10 @@ input[type="number"] { -moz-appearance: textfield; }
   overflow: hidden;
 }
 
-/* Мезенская роспись */
+/* Мезенская роспись (адаптированная под темную тему) */
 #screen-result {
-  background-color: #f5f0e1; /* Кремовый фон */
-  color: #1a1a1b; /* Почти черный */
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   padding: 24px 20px 100px;
   display: none;
   flex-direction: column;
@@ -124,7 +124,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .mezen-header h2 {
   font-family: var(--font-display);
-  color: #ba2222; /* Мезенский красный */
+  color: var(--accent);
   font-size: 24px;
   margin: 10px 0;
   text-transform: uppercase;
@@ -139,19 +139,21 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 
 .mezen-horses {
-  background-image: url("data:image/svg+xml,%3Csvg width='40' height='20' viewBox='0 0 40 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 15c-2 0-4-1-4-3s2-3 4-3 4 1 4 3-2 3-4 3zm20 0c-2 0-4-1-4-3s2-3 4-3 4 1 4 3-2 3-4 3zM10 11l-2-4h4l-2 4zm20 0l-2-4h4l-2 4z' fill='%23ba2222'/%3E%3C/svg%3E");
+  /* Заменяем красный #ba2222 на голубой #00d4ff (%2300d4ff) */
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='20' viewBox='0 0 40 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 15c-2 0-4-1-4-3s2-3 4-3 4 1 4 3-2 3-4 3zm20 0c-2 0-4-1-4-3s2-3 4-3 4 1 4 3-2 3-4 3zM10 11l-2-4h4l-2 4zm20 0l-2-4h4l-2 4z' fill='%2300d4ff'/%3E%3C/svg%3E");
 }
 
 .mezen-spirals {
-  background-image: url("data:image/svg+xml,%3Csvg width='40' height='20' viewBox='0 0 40 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm20 0a5 5 0 1 0 10 0 5 5 0 0 0-10 0z' fill='%231a1a1b'/%3E%3C/svg%3E");
+  /* Заменяем черный #1a1a1b на белый #ffffff (%23ffffff) */
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='20' viewBox='0 0 40 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm20 0a5 5 0 1 0 10 0 5 5 0 0 0-10 0z' fill='%23ffffff'/%3E%3C/svg%3E");
 }
 
 .mezen-card {
-  background: #fff;
-  border: 4px solid #ba2222;
-  border-radius: 4px;
+  background: var(--bg-secondary);
+  border: 4px solid var(--accent);
+  border-radius: var(--radius-md);
   padding: 25px;
-  box-shadow: 10px 10px 0px #1a1a1b;
+  box-shadow: 0 0 20px var(--accent-dim);
   margin-bottom: 30px;
   position: relative;
 }
@@ -160,7 +162,7 @@ input[type="number"] { -moz-appearance: textfield; }
   content: '';
   position: absolute;
   top: 5px; left: 5px; right: 5px; bottom: 5px;
-  border: 1px solid #1a1a1b;
+  border: 1px solid var(--glass-border);
   pointer-events: none;
 }
 
@@ -168,10 +170,10 @@ input[type="number"] { -moz-appearance: textfield; }
   font-family: var(--font-display);
   font-size: 32px;
   font-weight: 900;
-  color: #ba2222;
+  color: var(--accent);
   text-align: center;
   margin-bottom: 20px;
-  border-bottom: 2px solid #1a1a1b;
+  border-bottom: 2px solid var(--glass-border);
   padding-bottom: 10px;
 }
 
@@ -185,7 +187,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .mezen-divider {
   height: 2px;
-  background: #ba2222;
+  background: var(--accent);
   margin: 20px 0;
   position: relative;
 }
@@ -195,9 +197,9 @@ input[type="number"] { -moz-appearance: textfield; }
   position: absolute;
   top: -10px; left: 50%;
   transform: translateX(-50%);
-  background: #fff;
+  background: var(--bg-secondary);
   padding: 0 10px;
-  color: #1a1a1b;
+  color: var(--text-primary);
 }
 
 .mezen-item {
@@ -205,26 +207,27 @@ input[type="number"] { -moz-appearance: textfield; }
   justify-content: space-between;
   margin-bottom: 8px;
   font-size: 12px;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .mezen-item-name { flex: 1; padding-right: 10px; }
 
 .mezen-btn {
-  border-radius: 0;
+  border-radius: var(--radius-md);
   text-transform: uppercase;
   font-weight: 800;
   letter-spacing: 1px;
 }
 
 .mezen-btn.btn-primary {
-  background: #ba2222;
+  background: var(--accent);
+  color: var(--bg-primary);
   border: none;
 }
 
 .mezen-btn.btn-secondary {
-  background: #1a1a1b;
-  color: #f5f0e1;
-  border: none;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
   margin-top: 10px;
 }
