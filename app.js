@@ -102,6 +102,7 @@ const state = {
     soundRecord: false,
     motionDetect: false,
     hasInternet: false,
+    selectedOperator: null,
     maintenance: false,
     archiveDays: 14,
     result: null
@@ -110,39 +111,141 @@ const state = {
   delivery: 'courier'
 };
 
-// ─── УТИЛИТЫ ──────────────────────────────────────────────────────────────────
-let _isOnline = true;
-async function updateConnStatus() {
-  const el = $('conn-status');
-  if (!el) return;
+// ─── EQUIPMENT CATALOG ────────────────────────────────────────────────────────
+const RF_OPERATORS = [
+  { id: 'rostelecom', name: 'Ростелеком', logo: '🔴', speeds: ['100 Мбит/с', '300 Мбит/с', '500 Мбит/с'], avgPrice: 500 },
+  { id: 'mts', name: 'МТС', logo: '🔴', speeds: ['100 Мбит/с', '200 Мбит/с'], avgPrice: 450 },
+  { id: 'beeline', name: 'Билайн', logo: '🟡', speeds: ['100 Мбит/с', '500 Мбит/с'], avgPrice: 500 },
+  { id: 'megafon', name: 'МегаФон', logo: '🟢', speeds: ['100 Мбит/с', '300 Мбит/с'], avgPrice: 480 },
+  { id: 'dom_ru', name: 'Дом.ru', logo: '🟠', speeds: ['100 Мбит/с', '200 Мбит/с', '1 Гбит/с'], avgPrice: 400 },
+  { id: 'ttk', name: 'ТТК', logo: '🔵', speeds: ['100 Мбит/с', '300 Мбит/с'], avgPrice: 430 },
+  { id: '4g', name: '4G-роутер (резерв)', logo: '📡', speeds: ['до 50 Мбит/с'], avgPrice: 6500, oneTime: true },
+  { id: 'no_internet', name: 'Без интернета', logo: '🚫', speeds: [], avgPrice: 0 },
+];
 
-  try {
-    const start = Date.now();
-    const res = await fetch(StorageService.API_URL.replace('/api', '/api/health'), { method: 'GET', cache: 'no-cache' });
-    const duration = Date.now() - start;
-
-    if (res.ok) {
-       _isOnline = true;
-       el.style.background = 'rgba(0,255,148,0.1)';
-       el.style.color = 'var(--accent-2)';
-       el.style.borderColor = 'rgba(0,255,148,0.2)';
-       el.querySelector('span').textContent = `ONLINE (${duration}ms)`;
-    } else {
-       throw new Error();
-    }
-  } catch (e) {
-    _isOnline = false;
-    el.style.background = 'rgba(255,74,107,0.1)';
-    el.style.color = '#ff4a6b';
-    el.style.borderColor = 'rgba(255,74,107,0.2)';
-    el.querySelector('span').textContent = 'OFFLINE';
-  }
+function renderOperators() {
+  const list = document.getElementById('operators-list');
+  if (!list) return;
+  list.innerHTML = RF_OPERATORS.map(op => `
+    <div class="checkbox-row ${state.calc.selectedOperator === op.id ? 'checked' : ''}"
+         onclick="selectOperator('${op.id}')" style="padding:10px 14px;">
+      <span style="font-size:18px;">${op.logo}</span>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;">${op.name}</div>
+        ${op.speeds.length ? `<div style="font-size:11px;color:var(--text-muted);">${op.speeds.join(' / ')}</div>` : ''}
+      </div>
+      ${op.oneTime ? `<span style="font-size:11px;color:var(--accent);white-space:nowrap;">+${fmt(op.avgPrice)} разово</span>` :
+        op.avgPrice > 0 ? `<span style="font-size:11px;color:var(--text-secondary);white-space:nowrap;">~${op.avgPrice} ₽/мес</span>` : ''}
+    </div>
+  `).join('');
 }
 
-// Пинг каждые 30 секунд
-setInterval(updateConnStatus, 30000);
-window.addEventListener('online', updateConnStatus);
-window.addEventListener('offline', updateConnStatus);
+function selectOperator(id) {
+  state.calc.selectedOperator = id;
+  renderOperators();
+  haptic('light');
+  if (typeof recalcPrice === 'function') recalcPrice();
+  else buildAndShowResult();
+}
+
+const EQUIPMENT_CATALOG = {
+  cameras: [
+    { id: 'cam_b1', name: 'Hikvision DS-2CD1143G2-I', spec: '4МП, ИК 40м, IP67, PoE', price: 2900, type: 'outdoor' },
+    { id: 'cam_b2', name: 'Dahua IPC-HDW2849H-S-IL', spec: '8МП 4K, ИК+белый свет, IP67', price: 5900, type: 'outdoor' },
+    { id: 'cam_b3', name: 'Hikvision DS-2CD2T47G2-L', spec: '4МП ColorVu, ночь в цвете, ИК 60м', price: 4500, type: 'outdoor' },
+    { id: 'cam_b4', name: 'Dahua IPC-HDW3849H-ZAS-PV', spec: '8МП, вариофокал, цвет ночью', price: 7900, type: 'outdoor' },
+    { id: 'cam_i1', name: 'Hikvision DS-2CD2143G2-I', spec: '4МП, купол, ИК 40м, PoE', price: 2500, type: 'indoor' },
+    { id: 'cam_i2', name: 'Dahua IPC-HDW2831T-AS', spec: '8МП 4K, купол, встр. микрофон', price: 3900, type: 'indoor' },
+    { id: 'cam_p1', name: 'Hikvision DS-2DE4425IWG-E', spec: '4МП PTZ, авто-слежение, ИК 100м', price: 18900, type: 'ptz' },
+  ],
+  dvr: [
+    { id: 'nvr_4', name: 'Hikvision DS-7604NI-K1/4P', spec: '4 канала PoE, до 8МП, H.265+', price: 8500 },
+    { id: 'nvr_8', name: 'Hikvision DS-7608NI-K2/8P', spec: '8 каналов PoE, до 8МП, H.265+', price: 14900 },
+    { id: 'nvr_16', name: 'Hikvision DS-7616NI-K2/16P', spec: '16 каналов PoE, до 8МП', price: 24900 },
+    { id: 'nvr_32', name: 'Dahua NVR4232-16P-4KS2/L', spec: '32 канала, 16xPoE, RAID', price: 42000 },
+  ],
+  hdd: [
+    { id: 'hdd_1', name: 'WD Purple 1TB', spec: 'WD10PURZ, 24/7, ~7 дней архива', price: 3200 },
+    { id: 'hdd_2', name: 'WD Purple 2TB', spec: 'WD23PURZ, 24/7, ~14 дней архива', price: 5500 },
+    { id: 'hdd_4', name: 'WD Purple 4TB', spec: 'WD43PURZ, 24/7, ~30 дней архива', price: 8900 },
+    { id: 'hdd_6', name: 'Seagate SkyHawk 6TB', spec: 'ST6000VX001, 24/7, ~45 дней архива', price: 13500 },
+    { id: 'hdd_8', name: 'Seagate SkyHawk 8TB', spec: 'ST8000VX004, 24/7, ~60 дней архива', price: 17900 },
+  ]
+};
+
+const proState = { camera: null, cameraQty: 1, dvr: null, hdd: null };
+
+function renderProMode() {
+  function makeItem(item, type, selected) {
+    const div = document.createElement('div');
+    div.style.cssText = `background:var(--bg-card);border:1px solid ${selected ? 'var(--accent)' : 'var(--glass-border)'};border-radius:14px;padding:12px 14px;cursor:pointer;transition:all 0.2s;`;
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:2px;">${item.name}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">${item.spec}</div>
+        </div>
+        <div style="font-size:14px;font-weight:800;color:var(--accent);margin-left:10px;white-space:nowrap;">${fmt(item.price)}</div>
+      </div>
+      ${type === 'camera' ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;"><span style="font-size:11px;color:var(--text-muted);">Кол-во:</span>
+        <button onclick="event.stopPropagation();proState.cameraQty=Math.max(1,proState.cameraQty-1);updateProTotal();" style="width:24px;height:24px;border-radius:50%;background:var(--bg-secondary);border:1px solid var(--glass-border);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+        <span id="pro-cam-qty" style="font-weight:700;min-width:20px;text-align:center;">${proState.cameraQty}</span>
+        <button onclick="event.stopPropagation();proState.cameraQty++;updateProTotal();" style="width:24px;height:24px;border-radius:50%;background:var(--bg-secondary);border:1px solid var(--glass-border);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+      </div>` : ''}
+    `;
+    div.onclick = () => {
+      proState[type] = selected ? null : item;
+      renderProMode();
+      updateProTotal();
+      haptic('light');
+    };
+    return div;
+  }
+
+  const camList = document.getElementById('pro-cameras-list');
+  const dvrList = document.getElementById('pro-dvr-list');
+  const hddList = document.getElementById('pro-hdd-list');
+  if (!camList) return;
+
+  camList.innerHTML = '';
+  EQUIPMENT_CATALOG.cameras.forEach(c => camList.appendChild(makeItem(c, 'camera', proState.camera?.id === c.id)));
+
+  dvrList.innerHTML = '';
+  EQUIPMENT_CATALOG.dvr.forEach(d => dvrList.appendChild(makeItem(d, 'dvr', proState.dvr?.id === d.id)));
+
+  hddList.innerHTML = '';
+  EQUIPMENT_CATALOG.hdd.forEach(h => hddList.appendChild(makeItem(h, 'hdd', proState.hdd?.id === h.id)));
+}
+
+function updateProTotal() {
+  const qtyEl = document.getElementById('pro-cam-qty');
+  if (qtyEl) qtyEl.textContent = proState.cameraQty;
+  const cam = proState.camera ? proState.camera.price * proState.cameraQty : 0;
+  const dvr = proState.dvr ? proState.dvr.price : 0;
+  const hdd = proState.hdd ? proState.hdd.price : 0;
+  const total = cam + dvr + hdd;
+  const el = document.getElementById('pro-total-price');
+  if (el) el.textContent = fmt(total);
+}
+
+// ─── УТИЛИТЫ ──────────────────────────────────────────────────────────────────
+function renderConnBadge() {
+  const el = document.getElementById('conn-status');
+  if (!el) return;
+  if (state.user?.isGuest) {
+    el.style.background = 'rgba(255,165,0,0.12)';
+    el.style.color = '#ffaa00';
+    el.style.borderColor = 'rgba(255,165,0,0.3)';
+    el.innerHTML = '<span>👤 Войти в Telegram</span>';
+    el.onclick = () => performAuth();
+  } else if (state.user) {
+    el.style.background = 'rgba(0,255,148,0.1)';
+    el.style.color = 'var(--accent-2)';
+    el.style.borderColor = 'rgba(0,255,148,0.2)';
+    el.innerHTML = '<span>✓ @' + (state.user.username || state.user.full_name) + '</span>';
+    el.onclick = null;
+  }
+}
 
 function fmt(n) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
@@ -255,7 +358,25 @@ function buildSpec(pkg, area, camType, opts) {
   const hddTotal = PRICES[hddKey];
 
   const micTotal = opts.soundRecord ? PRICES.mic * (camCount <= 4 ? 1 : 2) : 0;
-  const internetTotal = opts.hasInternet ? (PRICES.router_4g || 6500) : 0;
+
+  let internetTotal = 0;
+  let internetName = '4G-Интернет комплект';
+  let internetSpec = 'Роутер + антенна + SIM';
+
+  if (opts.hasInternet) {
+    const op = RF_OPERATORS.find(o => o.id === state.calc.selectedOperator);
+    if (op) {
+      internetName = op.name;
+      if (op.oneTime) {
+        internetTotal = op.avgPrice;
+        internetSpec = 'Оборудование и установка';
+      } else {
+        internetSpec = op.speeds.length ? `Тариф: ${op.speeds.join(' / ')}` : 'Подключение';
+      }
+    } else {
+      internetTotal = PRICES.router_4g || 6500;
+    }
+  }
 
   // Расчет стоимости работ with Moscow rates & margin
   const baseInstall = PRICES[pkg.install] * camCount;
@@ -278,7 +399,7 @@ function buildSpec(pkg, area, camType, opts) {
     { name: 'HDD для видеонаблюдения', spec: `Ёмкость под архив ${opts.archiveDays} дн.`, price: hddTotal, qty: 1, icon: '💾' },
   ];
   if (opts.soundRecord) items.push({ name: 'Микрофон всенаправленный', spec: 'до 10м, шумоподавление', price: micTotal, qty: camCount <= 4 ? 1 : 2, icon: '🎤' });
-  if (opts.hasInternet) items.push({ name: '4G-Интернет комплект', spec: 'Роутер + антенна + SIM', price: internetTotal, qty: 1, icon: '🌐' });
+  if (opts.hasInternet) items.push({ name: internetName, spec: internetSpec, price: internetTotal, qty: 1, icon: '🌐' });
   if (opts.maintenance) items.push({ name: 'Техническое обслуживание', spec: 'Ежемесячный выезд, чистка, проверка дисков', price: PRICES.maintenance, qty: 1, icon: '🛠️' });
   items.push({ name: 'Монтаж и настройка системы', spec: camCount + ' точек + NVR + кабель', price: laborTotal, qty: 1, icon: '🔧' });
 
@@ -462,18 +583,13 @@ function getAddress(coords) {
 }
 
 async function validateManualAddress(addr) {
-  if (!addr || addr.length < 5) return false;
-  if (!window.ymaps) return true; // Fail-safe
+  if (!addr || addr.trim().length < 5) return true; // allow empty, validated elsewhere
+  if (!window.ymaps) return true; // ymaps not loaded, skip validation
   try {
     const res = await ymaps.geocode(addr);
-    const obj = res.geoObjects.get(0);
-    if (!obj) return false;
-    // Если объект найден и это хотя бы улица или здание - считаем валидным
-    const meta = obj.properties.get('metaDataProperty.GeocoderMetaData');
-    const kind = meta.kind;
-    return ['house', 'street', 'district', 'locality'].includes(kind);
+    return res.geoObjects.getLength() > 0;
   } catch (e) {
-    return true; // В случае ошибки API не блокируем пользователя
+    return true; // network error — allow save
   }
 }
 
@@ -661,6 +777,28 @@ function bindSupport() {
   });
 }
 
+function showCenterModal(title, text, buttons) {
+  const existing = document.getElementById('center-modal');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'center-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px);';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#0d1420;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px;max-width:340px;width:100%;text-align:center;';
+  box.innerHTML = `<div style="font-size:18px;font-weight:700;margin-bottom:10px;">${title}</div><div style="font-size:14px;color:#94a3b8;line-height:1.5;margin-bottom:20px;">${text}</div>`;
+  buttons.forEach(btn => {
+    const b = document.createElement('button');
+    b.className = btn.primary ? 'btn btn-primary' : 'btn btn-secondary';
+    b.style.marginBottom = '10px';
+    b.textContent = btn.label;
+    b.onclick = () => { overlay.remove(); if (btn.action) btn.action(); };
+    box.appendChild(b);
+  });
+  overlay.appendChild(box);
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+
 // ─── ИНИЦИАЛИЗАЦИЯ ────────────────────────────────────────────────────────────
 async function init() {
   TelegramService.ready();
@@ -682,9 +820,15 @@ async function init() {
   });
 
   // Listen for guest login button
-  $('btn-guest-login')?.addEventListener('click', () => {
+  $('btn-guest-enter')?.addEventListener('click', () => {
     haptic('medium');
     enterAsGuest();
+  });
+
+  $('btn-guest-link-tg')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    haptic('medium');
+    performAuth();
   });
 }
 
@@ -698,12 +842,13 @@ function enterAsGuest() {
     username: 'guest',
     full_name: 'Гость',
     role: 'user',
-    is_guest: true
+    isGuest: true
   };
 
   state.user = guestUser;
   state.orderCount = 0;
   StorageService.set('user', guestUser);
+  renderConnBadge();
 
   toast('Вход выполнен в гостевом режиме');
   setTimeout(() => showScreen('home'), 500);
@@ -757,6 +902,7 @@ async function performAuth() {
     if (syncResult) {
       state.user = syncResult;
       state.orderCount = StorageService.getOrderCount();
+      renderConnBadge();
 
       // Настройка прав доступа и интерфейса
       if (state.user?.role === 'admin') $('nav-admin').style.display = 'flex';
@@ -855,6 +1001,17 @@ function prepareNewScreen(name, el) {
   }
 
   $$('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.screen === name));
+
+  if (name === 'home' && state.user?.isGuest) {
+    setTimeout(() => {
+      showCenterModal(
+        '👋 Добро пожаловать!',
+        'Вы вошли как гость. Вы можете рассчитать стоимость и выбрать оборудование, но для оформления заказа необходимо войти через Telegram.',
+        [{ label: '🔗 Войти через Telegram', primary: true, action: performAuth },
+         { label: 'Остаться гостем', action: null }]
+      );
+    }, 800);
+  }
 
   // Инициализация логики экранов
   if (name === 'home') renderHome();
@@ -1001,6 +1158,13 @@ function bindCalculator() {
       row.classList.toggle('checked');
       const key = row.dataset.option;
       if (key) state.calc[key] = row.classList.contains('checked');
+      if (key === 'hasInternet') {
+        const panel = document.getElementById('internet-operators-panel');
+        if (panel) {
+          panel.style.display = state.calc.hasInternet ? 'block' : 'none';
+          if (state.calc.hasInternet) renderOperators();
+        }
+      }
     });
   });
 
@@ -1021,6 +1185,35 @@ function bindCalculator() {
 
   $('btn-calc3-back')?.addEventListener('click', () => { haptic('light'); renderCalcStep(2); });
   $('btn-calc3-order')?.addEventListener('click', () => { haptic('success'); doOrder(); });
+
+  document.getElementById('btn-pro-mode')?.addEventListener('click', () => {
+    const panel = document.getElementById('pro-mode-panel');
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) { renderProMode(); updateProTotal(); }
+    haptic('light');
+  });
+
+  document.getElementById('btn-pro-add-to-cart')?.addEventListener('click', () => {
+    if (!proState.camera && !proState.dvr && !proState.hdd) {
+      toast('Выберите хотя бы одну позицию', 'error'); return;
+    }
+    if (proState.camera) {
+      addToCart({ name: proState.camera.name, spec: proState.camera.spec, price: proState.camera.price, qty: proState.cameraQty, icon: '📷' });
+    }
+    if (proState.dvr) addToCart({ name: proState.dvr.name, spec: proState.dvr.spec, price: proState.dvr.price, qty: 1, icon: '📼' });
+    if (proState.hdd) addToCart({ name: proState.hdd.name, spec: proState.hdd.spec, price: proState.hdd.price, qty: 1, icon: '💾' });
+    document.getElementById('pro-mode-panel').style.display = 'none';
+    haptic('success');
+    toast('Добавлено в корзину', 'success');
+    showScreen('cart');
+  });
+}
+
+function addToCart(item) {
+  state.cart.push(item);
+  StorageService.set('cart', state.cart);
 }
 
 function renderPackagePreview(pkgId) {
@@ -1119,10 +1312,40 @@ function renderProfile() {
       editPhone.value = u.phone || '';
       applyPhoneMask(editPhone);
   }
+  const editEmail = $('edit-email'); if (editEmail) editEmail.value = u.email || '';
   const editAddr = $('edit-address'); if (editAddr) editAddr.value = u.address || '';
 
+  const guestBanner = document.getElementById('guest-banner');
+  if (guestBanner) guestBanner.style.display = state.user?.isGuest ? 'block' : 'none';
+
+  const navSupport = document.getElementById('nav-support');
+  if (navSupport) navSupport.style.display = state.orderCount > 0 ? 'flex' : 'none';
+
+  const chatWrap = document.getElementById('chat-engineer-btn-wrap');
+  if (chatWrap) chatWrap.style.display = state.orderCount > 0 ? 'block' : 'none';
+
   StorageService.getReferralData().then(data => {
-    if (data) { $('ref-bonus-display').textContent = fmt(data.balance); state.referralCode = data.code; }
+    if (!data) return;
+    const refBonus = document.getElementById('ref-bonus-display');
+    const refCode = document.getElementById('ref-code-display');
+    if (refBonus) refBonus.textContent = fmt(data.balance || 0);
+    if (refCode) refCode.textContent = data.code || '—';
+    state.referralCode = data.code;
+
+    // Show invites if any
+    if (data.invites?.length > 0) {
+      const section = document.getElementById('ref-invites-section');
+      const list = document.getElementById('ref-invites-list');
+      if (section) section.style.display = 'block';
+      if (list) {
+        list.innerHTML = data.invites.map(inv =>
+          `<div style="display:flex;justify-content:space-between;background:var(--bg-secondary);border-radius:8px;padding:8px 12px;font-size:12px;">
+            <span>${inv.full_name}</span>
+            <span style="color:var(--text-muted);">${new Date(inv.created_at).toLocaleDateString('ru-RU')}</span>
+          </div>`
+        ).join('');
+      }
+    }
   }).catch(() => {});
 
   StorageService.getOrderHistory().then(orders => {
@@ -1187,6 +1410,16 @@ function applyPhoneMask(input) {
 }
 
 function bindProfile() {
+  document.getElementById('btn-link-telegram')?.addEventListener('click', () => performAuth());
+
+  document.getElementById('btn-copy-ref-code')?.addEventListener('click', () => {
+    if (!state.referralCode) return;
+    const botUser = 'gaze_video_bot';
+    const link = `https://t.me/${botUser}/app?startapp=${state.referralCode}`;
+    navigator.clipboard?.writeText(link).then(() => toast('Ссылка скопирована!', 'success')).catch(() => toast(link, 'success'));
+    haptic('medium');
+  });
+
   $('btn-share-ref')?.addEventListener('click', () => {
     haptic('medium'); if (!state.referralCode) return;
     const botUser = 'gaze_video_bot';
@@ -1198,6 +1431,15 @@ function bindProfile() {
     }
   });
 
+  document.getElementById('btn-share-ref-tg')?.addEventListener('click', () => {
+    if (!state.referralCode) return;
+    const botUser = 'gaze_video_bot';
+    const link = `https://t.me/${botUser}/app?startapp=${state.referralCode}`;
+    const text = encodeURIComponent(`🎥 Установи GAZE — профессиональный подбор систем видеонаблюдения! ${link}`);
+    window.Telegram?.WebApp?.openTelegramLink?.(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`);
+    haptic('medium');
+  });
+
   $('btn-edit-profile')?.addEventListener('click', () => {
     haptic();
     $('profile-main-view').style.display = 'none';
@@ -1207,11 +1449,16 @@ function bindProfile() {
     haptic(); $('profile-main-view').style.display = ''; $('profile-edit-view').style.display = 'none';
   });
   $('btn-save-profile')?.addEventListener('click', async () => {
+    if (state.user?.isGuest) {
+      toast('Для сохранения профиля войдите через Telegram', 'error');
+      return;
+    }
     haptic('medium');
     clearErr(['edit-name', 'edit-phone', 'edit-address']);
 
     const name = $('edit-name')?.value.trim();
     const phone = $('edit-phone')?.value.trim();
+    const email = $('edit-email')?.value.trim();
     const address = $('edit-address')?.value.trim();
 
     if (name?.length < 2) {
@@ -1239,7 +1486,7 @@ function bindProfile() {
       full_name: name,
       phone: phone,
       address: address,
-      email: state.user.email
+      email: email
     };
 
     try {
