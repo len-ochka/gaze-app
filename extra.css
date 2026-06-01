@@ -68,13 +68,6 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .compat-card { animation: slideIn 0.2s ease forwards; }
 
-/* Улучшенный прайс */
-.total-card {
-  background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(0,255,148,0.05));
-  border: 1px solid rgba(0,212,255,0.2);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-}
 
 .shimmer {
   background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%);
@@ -105,129 +98,194 @@ input[type="number"] { -moz-appearance: textfield; }
   overflow: hidden;
 }
 
-/* Мезенская роспись (адаптированная под темную тему) */
-#screen-result {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  padding: 24px 20px 100px;
-  display: none;
-  flex-direction: column;
-}
-
-#screen-result.active { display: flex; }
-
-.mezen-header {
-  text-align: center;
-  margin-bottom: 30px;
+/* CCTV Security Theme for Step 3 */
+#calc-step-3 {
   position: relative;
 }
 
-.mezen-header h2 {
-  font-family: var(--font-display);
-  color: var(--accent);
-  font-size: 24px;
-  margin: 10px 0;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+.cctv-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  opacity: 0.15;
+  background: linear-gradient(rgba(0,212,255,0.05) 50%, transparent 50%);
+  background-size: 100% 4px;
+  z-index: 5;
+  animation: flicker 4s infinite;
 }
 
-.mezen-pattern {
+@keyframes flicker {
+  0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% { opacity: 0.15; }
+  20%, 21.999%, 63%, 63.999%, 65%, 69.999% { opacity: 0.05; }
+}
+
+.viewfinder-corner {
+  position: absolute;
+  width: 20px;
   height: 20px;
-  width: 100%;
-  background-size: contain;
-  background-repeat: repeat-x;
+  border: 2px solid var(--accent);
+  z-index: 10;
+}
+.corner-tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+.corner-tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+.corner-bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+.corner-br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+.motion-alert {
+  position: absolute;
+  top: 50px;
+  right: 20px;
+  background: rgba(255, 74, 107, 0.2);
+  border: 1px solid #ff4a6b;
+  color: #ff4a6b;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 4px;
+  text-transform: uppercase;
+  animation: flash 0.5s infinite;
+  z-index: 20;
+  display: none;
 }
 
-.mezen-horses {
-  /* Заменяем красный #ba2222 на голубой #00d4ff (%2300d4ff) */
-  background-image: url("data:image/svg+xml,%3Csvg width='40' height='20' viewBox='0 0 40 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 15c-2 0-4-1-4-3s2-3 4-3 4 1 4 3-2 3-4 3zm20 0c-2 0-4-1-4-3s2-3 4-3 4 1 4 3-2 3-4 3zM10 11l-2-4h4l-2 4zm20 0l-2-4h4l-2 4z' fill='%2300d4ff'/%3E%3C/svg%3E");
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
-.mezen-spirals {
-  /* Заменяем черный #1a1a1b на белый #ffffff (%23ffffff) */
-  background-image: url("data:image/svg+xml,%3Csvg width='40' height='20' viewBox='0 0 40 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10a5 5 0 1 0 10 0 5 5 0 0 0-10 0zm20 0a5 5 0 1 0 10 0 5 5 0 0 0-10 0z' fill='%23ffffff'/%3E%3C/svg%3E");
+.rec-badge {
+  position: absolute;
+  top: 20px;
+  left: 40px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ff4a6b;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  animation: blink 1s infinite;
+  z-index: 10;
 }
+.rec-dot { width: 8px; height: 8px; background: #ff4a6b; border-radius: 50%; }
 
-.mezen-card {
-  background: var(--bg-secondary);
-  border: 4px solid var(--accent);
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+.compat-results-list {
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
   border-radius: var(--radius-md);
-  padding: 25px;
-  box-shadow: 0 0 20px var(--accent-dim);
-  margin-bottom: 30px;
-  position: relative;
+  margin-top: 10px;
 }
 
-.mezen-card::before {
+.compat-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--glass-border);
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.compat-card::after {
   content: '';
   position: absolute;
-  top: 5px; left: 5px; right: 5px; bottom: 5px;
-  border: 1px solid var(--glass-border);
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.05), transparent);
+  transform: translateX(-100%);
+  animation: scanline 3s infinite;
+}
+
+@keyframes scanline {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+.total-card {
+  background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,255,148,0.05));
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 20px var(--accent-dim);
+  position: relative;
+  overflow: hidden;
+}
+
+.total-card::before {
+  content: '[ SYSTEM READY ]';
+  position: absolute;
+  top: -10px;
+  right: 20px;
+  background: var(--bg-primary);
+  padding: 0 8px;
+  font-size: 10px;
+  color: var(--accent);
+  font-family: monospace;
+  z-index: 2;
+}
+
+/* Marching Ants Border Animation */
+.total-card::after {
+  content: '';
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-lg);
+  mask: linear-gradient(white, white) content-box, linear-gradient(white, white);
+  mask-composite: exclude;
+  animation: borderRotate 4s linear infinite;
   pointer-events: none;
 }
 
-.mezen-total-value {
-  font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: 900;
-  color: var(--accent);
-  text-align: center;
-  margin-bottom: 20px;
-  border-bottom: 2px solid var(--glass-border);
-  padding-bottom: 10px;
+@keyframes borderRotate {
+  0% { clip-path: inset(0 0 95% 0); }
+  25% { clip-path: inset(0 0 0 95%); }
+  50% { clip-path: inset(95% 0 0 0); }
+  75% { clip-path: inset(0 95% 0 0); }
+  100% { clip-path: inset(0 0 95% 0); }
 }
 
-.mezen-detail-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.mezen-divider {
-  height: 2px;
-  background: var(--accent);
-  margin: 20px 0;
+/* Glitch Effect for Price */
+.glitch-text {
   position: relative;
+  display: inline-block;
 }
 
-.mezen-divider::after {
-  content: '✻';
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
   position: absolute;
-  top: -10px; left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-secondary);
-  padding: 0 10px;
-  color: var(--text-primary);
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--bg-primary);
+  clip: rect(0, 0, 0, 0);
 }
 
-.mezen-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: var(--text-secondary);
+.glitch-text::after {
+  left: 2px;
+  text-shadow: -2px 0 #ff4a6b;
+  animation: glitch-anim-1 2s infinite linear alternate-reverse;
 }
 
-.mezen-item-name { flex: 1; padding-right: 10px; }
-
-.mezen-btn {
-  border-radius: var(--radius-md);
-  text-transform: uppercase;
-  font-weight: 800;
-  letter-spacing: 1px;
+.glitch-text::before {
+  left: -2px;
+  text-shadow: 2px 0 var(--accent);
+  animation: glitch-anim-2 3s infinite linear alternate-reverse;
 }
 
-.mezen-btn.btn-primary {
-  background: var(--accent);
-  color: var(--bg-primary);
-  border: none;
+@keyframes glitch-anim-1 {
+  0% { clip: rect(20px, 9999px, 10px, 0); }
+  20% { clip: rect(45px, 9999px, 56px, 0); }
+  40% { clip: rect(12px, 9999px, 89px, 0); }
+  60% { clip: rect(78px, 9999px, 12px, 0); }
+  80% { clip: rect(34px, 9999px, 67px, 0); }
+  100% { clip: rect(90px, 9999px, 23px, 0); }
 }
 
-.mezen-btn.btn-secondary {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--glass-border);
-  margin-top: 10px;
+@keyframes glitch-anim-2 {
+  0% { clip: rect(89px, 9999px, 12px, 0); }
+  20% { clip: rect(12px, 9999px, 45px, 0); }
+  40% { clip: rect(56px, 9999px, 78px, 0); }
+  60% { clip: rect(23px, 9999px, 90px, 0); }
+  80% { clip: rect(67px, 9999px, 34px, 0); }
+  100% { clip: rect(10px, 9999px, 20px, 0); }
 }

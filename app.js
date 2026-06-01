@@ -1206,8 +1206,77 @@ function bindCalculator() {
   $('btn-calc2-next')?.addEventListener('click', () => {
     haptic('medium');
     if (!state.calc.package) { toast('Выберите пакет', 'error'); return; }
-    buildAndShowResult();
-    showScreen('result');
+
+    // Show scanning animation
+    const overlay = $('scanning-overlay');
+    if (overlay) {
+      overlay.style.display = 'flex';
+
+      const radar = $('scanning-radar');
+      const progress = $('scanning-progress');
+      const text = $('scanning-text');
+
+      anime({
+        targets: radar,
+        rotate: '1turn',
+        duration: 2000,
+        easing: 'linear',
+        loop: true
+      });
+
+      anime({
+        targets: progress,
+        width: '100%',
+        duration: 3000,
+        easing: 'easeInOutQuad'
+      });
+
+      const phrases = ['Анализ объекта...', 'Подбор оборудования...', 'Расчет стоимости...', 'Оптимизация...'];
+      let pIdx = 0;
+      const tInterval = setInterval(() => {
+        if (text) text.textContent = phrases[++pIdx % phrases.length];
+        const hud = $('scanning-hud');
+        if (hud) hud.textContent = `LAT: ${55 + Math.random().toFixed(2)} | LNG: ${37 + Math.random().toFixed(2)} | CAM_ID: GH-0${Math.floor(Math.random()*9)}`;
+      }, 700);
+
+      setTimeout(() => {
+        clearInterval(tInterval);
+        overlay.style.display = 'none';
+        buildAndShowResult();
+        renderCalcStep(3);
+
+        // Staggered entry for results
+        anime({
+          targets: '.compat-card',
+          opacity: [0, 1],
+          translateX: [-20, 0],
+          delay: anime.stagger(150),
+          duration: 600,
+          easing: 'easeOutExpo'
+        });
+
+        anime({
+          targets: '.total-card',
+          scale: [0.9, 1],
+          opacity: [0, 1],
+          delay: 800,
+          duration: 800,
+          easing: 'easeOutElastic(1, .6)'
+        });
+
+        // Motion Detected random alert
+        setTimeout(() => {
+          const alert = $('motion-alert');
+          if (alert) {
+            alert.style.display = 'block';
+            setTimeout(() => alert.style.display = 'none', 3000);
+          }
+        }, 1500);
+      }, 3200);
+    } else {
+      buildAndShowResult();
+      renderCalcStep(3);
+    }
   });
 
   $('btn-calc3-back')?.addEventListener('click', () => { haptic('light'); renderCalcStep(2); });
@@ -1267,38 +1336,38 @@ function buildAndShowResult() {
   });
   state.calc.result = spec;
 
-  const mezenCard = $('mezen-result-card');
-  if (mezenCard) {
-    mezenCard.innerHTML = `
-      <div class="mezen-total-value">${fmt(spec.total)}</div>
-      <div class="mezen-details">
-        <div class="mezen-detail-item">
-          <span>📷 Камер:</span>
-          <span>${spec.camCount} шт.</span>
+  const container = $('result-items');
+  if (container) {
+    container.innerHTML = spec.items.map(i =>
+      `<div class="compat-card">
+        <div class="compat-card-icon" style="font-size:20px;background:none;">${i.icon}</div>
+        <div class="compat-card-body">
+          <div class="compat-card-name">${i.name}</div>
+          <div class="compat-card-spec">${i.spec}</div>
         </div>
-        <div class="mezen-detail-item">
-          <span>🔌 Кабель:</span>
-          <span>~${spec.cableM} м</span>
+        <div class="compat-card-right">
+          <div class="compat-price">${fmt(i.price)}</div>
+          <div class="compat-qty">${i.qty} шт.</div>
         </div>
-        <div class="mezen-detail-item">
-          <span>📦 Пакет:</span>
-          <span>${pkg.name}</span>
-        </div>
-        <div class="mezen-detail-item">
-          <span>🔧 Работы:</span>
-          <span>${fmt(spec.laborTotal)}</span>
-        </div>
-      </div>
-      <div class="mezen-divider"></div>
-      <div class="mezen-items">
-        ${spec.items.map(i => `
-          <div class="mezen-item">
-            <span class="mezen-item-name">${i.icon} ${i.name}</span>
-            <span class="mezen-item-price">${fmt(i.price)}</span>
-          </div>
-        `).join('')}
-      </div>
-    `;
+      </div>`
+    ).join('');
+  }
+
+  const summary = $('result-summary');
+  if (summary) {
+    const totalStr = fmt(spec.total);
+    summary.innerHTML = `
+      <div class="total-row"><span class="total-label">📷 Камер</span><span class="total-value">${spec.camCount} шт.</span></div>
+      <div class="total-row"><span class="total-label">🔌 Кабель</span><span class="total-value">~${spec.cableM} м</span></div>
+      <div class="total-row"><span class="total-label">📦 Пакет</span><span class="total-value">${pkg.name}</span></div>
+      <div class="total-row"><span class="total-label">🔧 Работы</span><span class="total-value">${fmt(spec.laborTotal)}</span></div>
+      <div class="total-row total-final">
+        <span class="total-label">💰 ИТОГО</span>
+        <span class="total-value">
+          <span class="glitch-text" data-text="${totalStr}">${totalStr}</span>
+          ${state.orderCount >= 3 ? ' <span style="font-size:12px;color:var(--accent);">(VIP -5%)</span>' : ''}
+        </span>
+      </div>`;
   }
 }
 

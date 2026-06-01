@@ -365,7 +365,15 @@
 
       <!-- ШАГ 3 — Результат -->
       <div class="calc-step constructor-step" id="calc-step-3">
-        <div class="step-title">Спецификация и стоимость</div>
+        <div class="cctv-overlay"></div>
+        <div class="viewfinder-corner corner-tl"></div>
+        <div class="viewfinder-corner corner-tr"></div>
+        <div class="viewfinder-corner corner-bl"></div>
+        <div class="viewfinder-corner corner-br"></div>
+        <div class="rec-badge"><div class="rec-dot"></div> REC</div>
+        <div class="motion-alert" id="motion-alert">Motion Detected</div>
+
+        <div class="step-title" style="padding-left: 20px;">Спецификация и стоимость</div>
         <div class="compat-results-list" id="result-items"></div>
         <div class="total-card" id="result-summary" style="margin-bottom:10px;"></div>
 
@@ -433,29 +441,6 @@
     </div><!-- end calc-scroll -->
   </div>
 
-  <!-- ══════════════ RESULT SCREEN ══════════════ -->
-  <div class="screen result-screen" id="screen-result">
-    <div class="mezen-header">
-      <div class="mezen-pattern mezen-horses"></div>
-      <h2>Итоговый расчёт</h2>
-      <div class="mezen-pattern mezen-spirals"></div>
-    </div>
-
-    <div class="mezen-content">
-      <div class="mezen-card" id="mezen-result-card">
-        <!-- populated by JS -->
-      </div>
-
-      <div class="mezen-actions">
-        <button class="btn btn-primary mezen-btn" onclick="doOrder()" id="btn-mezen-order">
-          Оформить заказ
-        </button>
-        <button class="btn btn-secondary mezen-btn" onclick="showScreen('calculator')">
-          Изменить параметры
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- ══════════════ ADMIN PANEL ══════════════ -->
   <div class="screen admin-screen" id="screen-admin">
@@ -716,6 +701,21 @@
         <h4>Как долго хранится запись?</h4>
         <p>В «Эконом» — около 7 дней, в «Стандарт» — 14 дней, в «Премиум» — до 30 дней. Мы используем специализированные жесткие диски для видеонаблюдения.</p>
       </div>
+    </div>
+  </div>
+
+  <!-- Scanning Overlay -->
+  <div id="scanning-overlay" style="display:none; position:fixed; inset:0; background:rgba(8,12,20,0.9); z-index:5000; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(10px);">
+    <div style="width:200px; height:200px; border:2px solid var(--accent); border-radius:50%; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+      <div id="scanning-radar" style="position:absolute; inset:0; background:conic-gradient(from 0deg, var(--accent), transparent); opacity:0.3;"></div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="80" height="80" style="color:var(--accent); z-index:2;">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+      </svg>
+    </div>
+    <div style="margin-top:24px; font-family:var(--font-display); font-size:18px; font-weight:700; color:var(--accent); letter-spacing:2px; text-transform:uppercase;" id="scanning-text">Анализ объекта...</div>
+    <div style="margin-top:8px; font-family:monospace; font-size:10px; color:rgba(0,212,255,0.6);" id="scanning-hud">LAT: 55.75 | LNG: 37.61 | CAM_ID: GH-04</div>
+    <div style="margin-top:10px; width:200px; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden;">
+      <div id="scanning-progress" style="width:0%; height:100%; background:var(--accent);"></div>
     </div>
   </div>
 
