@@ -559,6 +559,15 @@ function getAddress(coords) {
       confirmBtn.innerHTML = '<span class="spinner"></span>';
   }
 
+  if (typeof ymaps === 'undefined' || !ymaps.geocode) {
+    toast('API Яндекс.Карт недоступно', 'error');
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = 'Подтвердить';
+    }
+    return;
+  }
+
   // Пробуем найти ближайший дом
   ymaps.geocode(coords, { kind: 'house', results: 1 }).then(function (res) {
     let obj = res.geoObjects.get(0);
@@ -579,6 +588,11 @@ function getAddress(coords) {
   }).catch(err => {
     console.error('Geocoding error:', err);
     toast('Ошибка геокодирования', 'error');
+  }).finally(() => {
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = 'Подтвердить';
+    }
   });
 }
 
@@ -942,6 +956,19 @@ async function performAuth() {
       // Если это не TWA и нет кэша - выводим подсказку
       if (!window.Telegram?.WebApp?.initData) {
         toast('Пожалуйста, откройте приложение в Telegram', 'error');
+
+        // Show external bot link if not in TWA
+        const authStatus = document.getElementById('auth-status');
+        if (authStatus) {
+          authStatus.innerHTML = `
+            <div style="margin-top:20px;">
+              <p style="color:var(--text-secondary);margin-bottom:15px;">Для работы приложения необходим Telegram</p>
+              <button onclick="window.open('https://t.me/gaze_video_bot', '_blank')" class="btn btn-primary">
+                Перейти в Бота
+              </button>
+            </div>
+          `;
+        }
       }
     }
   } finally {
@@ -1180,7 +1207,7 @@ function bindCalculator() {
     haptic('medium');
     if (!state.calc.package) { toast('Выберите пакет', 'error'); return; }
     buildAndShowResult();
-    renderCalcStep(3);
+    showScreen('result');
   });
 
   $('btn-calc3-back')?.addEventListener('click', () => { haptic('light'); renderCalcStep(2); });
@@ -1240,34 +1267,38 @@ function buildAndShowResult() {
   });
   state.calc.result = spec;
 
-  const container = $('result-items');
-  if (container) {
-    container.innerHTML = spec.items.map(i =>
-      `<div class="compat-card">
-        <div class="compat-card-icon" style="font-size:20px;background:none;">${i.icon}</div>
-        <div class="compat-card-body">
-          <div class="compat-card-name">${i.name}</div>
-          <div class="compat-card-spec">${i.spec}</div>
+  const mezenCard = $('mezen-result-card');
+  if (mezenCard) {
+    mezenCard.innerHTML = `
+      <div class="mezen-total-value">${fmt(spec.total)}</div>
+      <div class="mezen-details">
+        <div class="mezen-detail-item">
+          <span>📷 Камер:</span>
+          <span>${spec.camCount} шт.</span>
         </div>
-        <div class="compat-card-right">
-          <div class="compat-price">${fmt(i.price)}</div>
-          <div class="compat-qty">${i.qty} шт.</div>
+        <div class="mezen-detail-item">
+          <span>🔌 Кабель:</span>
+          <span>~${spec.cableM} м</span>
         </div>
-      </div>`
-    ).join('');
-  }
-
-  const summary = $('result-summary');
-  if (summary) {
-    summary.innerHTML = `
-      <div class="total-row"><span class="total-label">📷 Камер</span><span class="total-value">${spec.camCount} шт.</span></div>
-      <div class="total-row"><span class="total-label">🔌 Кабель</span><span class="total-value">~${spec.cableM} м</span></div>
-      <div class="total-row"><span class="total-label">📦 Пакет</span><span class="total-value">${pkg.name}</span></div>
-      <div class="total-row"><span class="total-label">🔧 Работы</span><span class="total-value">${fmt(spec.laborTotal)}</span></div>
-      <div class="total-row total-final">
-        <span class="total-label">💰 ИТОГО</span>
-        <span class="total-value">${fmt(spec.total)}${state.orderCount >= 3 ? ' <span style="font-size:12px;color:var(--accent);">(VIP -5%)</span>' : ''}</span>
-      </div>`;
+        <div class="mezen-detail-item">
+          <span>📦 Пакет:</span>
+          <span>${pkg.name}</span>
+        </div>
+        <div class="mezen-detail-item">
+          <span>🔧 Работы:</span>
+          <span>${fmt(spec.laborTotal)}</span>
+        </div>
+      </div>
+      <div class="mezen-divider"></div>
+      <div class="mezen-items">
+        ${spec.items.map(i => `
+          <div class="mezen-item">
+            <span class="mezen-item-name">${i.icon} ${i.name}</span>
+            <span class="mezen-item-price">${fmt(i.price)}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 }
 
@@ -1325,12 +1356,22 @@ function renderProfile() {
   if (chatWrap) chatWrap.style.display = state.orderCount > 0 ? 'block' : 'none';
 
   StorageService.getReferralData().then(data => {
-    if (!data) return;
+    if (!data) {
+      // Fallback referral code if server fails
+      if (!state.referralCode) {
+        state.referralCode = 'GZ' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      }
+      const refCode = document.getElementById('ref-code-display');
+      if (refCode) refCode.textContent = state.referralCode;
+      return;
+    }
     const refBonus = document.getElementById('ref-bonus-display');
     const refCode = document.getElementById('ref-code-display');
     if (refBonus) refBonus.textContent = fmt(data.balance || 0);
-    if (refCode) refCode.textContent = data.code || '—';
-    state.referralCode = data.code;
+
+    const code = data.code || 'GZ' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    if (refCode) refCode.textContent = code;
+    state.referralCode = code;
 
     // Show invites if any
     if (data.invites?.length > 0) {
