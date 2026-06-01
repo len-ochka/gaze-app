@@ -76,7 +76,7 @@ async function sendEmailFallback(orderData, user) {
 }
 
 function verifyTelegramWebAppData(initData) {
-  if (!initData || !BOT_TOKEN) return null;
+  if (!BOT_TOKEN || !initData) return null;
   const urlParams = new URLSearchParams(initData);
   const hash = urlParams.get('hash');
   urlParams.delete('hash');

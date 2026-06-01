@@ -113,12 +113,6 @@ input[type="number"] { -moz-appearance: textfield; }
   background: linear-gradient(rgba(0,212,255,0.05) 50%, transparent 50%);
   background-size: 100% 4px;
   z-index: 5;
-  animation: flicker 4s infinite;
-}
-
-@keyframes flicker {
-  0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% { opacity: 0.15; }
-  20%, 21.999%, 63%, 63.999%, 65%, 69.999% { opacity: 0.05; }
 }
 
 .viewfinder-corner {
@@ -166,10 +160,9 @@ input[type="number"] { -moz-appearance: textfield; }
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 800;
-  animation: blink 1s infinite;
   z-index: 10;
 }
-.rec-dot { width: 8px; height: 8px; background: #ff4a6b; border-radius: 50%; }
+.rec-dot { width: 8px; height: 8px; background: #ff4a6b; border-radius: 50%; animation: blink 1s infinite; }
 
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
@@ -186,21 +179,6 @@ input[type="number"] { -moz-appearance: textfield; }
   margin-bottom: 8px;
   position: relative;
   overflow: hidden;
-}
-
-.compat-card::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.05), transparent);
-  transform: translateX(-100%);
-  animation: scanline 3s infinite;
-}
-
-@keyframes scanline {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(100%); }
-  100% { transform: translateX(100%); }
 }
 
 .total-card {

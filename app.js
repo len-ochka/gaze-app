@@ -1239,8 +1239,22 @@ function bindCalculator() {
         if (hud) hud.textContent = `LAT: ${55 + Math.random().toFixed(2)} | LNG: ${37 + Math.random().toFixed(2)} | CAM_ID: GH-0${Math.floor(Math.random()*9)}`;
       }, 700);
 
+      // Эффект эха радара (динамические круги)
+      const pingInterval = setInterval(() => {
+        if (overlay.style.display === 'none') { clearInterval(pingInterval); return; }
+        const ping = document.createElement('div');
+        ping.className = 'scan-ping';
+        // Центрируем внутри оверлея
+        ping.style.left = '50%';
+        ping.style.top = '50%';
+        ping.style.transform = 'translate(-50%, -50%)';
+        overlay.appendChild(ping);
+        setTimeout(() => ping.remove(), 2000);
+      }, 600);
+
       setTimeout(() => {
         clearInterval(tInterval);
+        clearInterval(pingInterval);
         overlay.style.display = 'none';
         buildAndShowResult();
         renderCalcStep(3);
