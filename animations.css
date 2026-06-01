@@ -38,17 +38,17 @@ body::before {
   top: -100%;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 1px;
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(0, 212, 255, 0.18),
-    rgba(0, 212, 255, 0.06),
+    rgba(255, 77, 109, 0.1),
+    rgba(255, 77, 109, 0.02),
     transparent
   );
   z-index: 9998;
   pointer-events: none;
-  animation: cctv-scanline 8s linear infinite;
+  animation: cctv-scanline 12s linear infinite;
 }
 
 @keyframes cctv-scanline {
@@ -72,8 +72,8 @@ body::before {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,212,255,0.2) 0%, transparent 70%);
-  animation: lens-breathe 3s ease-in-out infinite;
+  background: radial-gradient(circle, var(--accent-rose-dim) 0%, transparent 70%);
+  animation: lens-breathe 4s ease-in-out infinite;
   pointer-events: none;
 }
 

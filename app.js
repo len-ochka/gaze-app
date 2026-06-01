@@ -178,20 +178,20 @@ const proState = { camera: null, cameraQty: 1, dvr: null, hdd: null };
 function renderProMode() {
   function makeItem(item, type, selected) {
     const div = document.createElement('div');
-    div.style.cssText = `background:var(--bg-card);border:1px solid ${selected ? 'var(--accent)' : 'var(--glass-border)'};border-radius:14px;padding:12px 14px;cursor:pointer;transition:all 0.2s;`;
+    div.className = `pro-item-card ${selected ? 'selected' : ''}`;
     div.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;margin-bottom:2px;">${item.name}</div>
-          <div style="font-size:11px;color:var(--text-secondary);">${item.spec}</div>
-        </div>
-        <div style="font-size:14px;font-weight:800;color:var(--accent);margin-left:10px;white-space:nowrap;">${fmt(item.price)}</div>
+      <div class="pro-item-info">
+        <div class="pro-item-name">${item.name}</div>
+        <div class="pro-item-spec">${item.spec}</div>
+        ${type === 'camera' && selected ? `
+          <div class="pro-qty-picker" onclick="event.stopPropagation()">
+            <button class="pro-qty-btn" onclick="proState.cameraQty=Math.max(1,proState.cameraQty-1);updateProTotal();renderProMode();">−</button>
+            <span class="pro-qty-val">${proState.cameraQty}</span>
+            <button class="pro-qty-btn" onclick="proState.cameraQty++;updateProTotal();renderProMode();">+</button>
+          </div>
+        ` : ''}
       </div>
-      ${type === 'camera' ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;"><span style="font-size:11px;color:var(--text-muted);">Кол-во:</span>
-        <button onclick="event.stopPropagation();proState.cameraQty=Math.max(1,proState.cameraQty-1);updateProTotal();" style="width:24px;height:24px;border-radius:50%;background:var(--bg-secondary);border:1px solid var(--glass-border);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-        <span id="pro-cam-qty" style="font-weight:700;min-width:20px;text-align:center;">${proState.cameraQty}</span>
-        <button onclick="event.stopPropagation();proState.cameraQty++;updateProTotal();" style="width:24px;height:24px;border-radius:50%;background:var(--bg-secondary);border:1px solid var(--glass-border);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
-      </div>` : ''}
+      <div class="pro-item-price">${fmt(item.price)}</div>
     `;
     div.onclick = () => {
       proState[type] = selected ? null : item;
@@ -202,19 +202,23 @@ function renderProMode() {
     return div;
   }
 
-  const camList = document.getElementById('pro-cameras-list');
-  const dvrList = document.getElementById('pro-dvr-list');
-  const hddList = document.getElementById('pro-hdd-list');
-  if (!camList) return;
+  const containers = {
+    camera: document.getElementById('pro-cameras-list'),
+    dvr: document.getElementById('pro-dvr-list'),
+    hdd: document.getElementById('pro-hdd-list')
+  };
 
-  camList.innerHTML = '';
-  EQUIPMENT_CATALOG.cameras.forEach(c => camList.appendChild(makeItem(c, 'camera', proState.camera?.id === c.id)));
+  if (!containers.camera) return;
 
-  dvrList.innerHTML = '';
-  EQUIPMENT_CATALOG.dvr.forEach(d => dvrList.appendChild(makeItem(d, 'dvr', proState.dvr?.id === d.id)));
+  // Render by categories
+  containers.camera.innerHTML = '';
+  EQUIPMENT_CATALOG.cameras.forEach(c => containers.camera.appendChild(makeItem(c, 'camera', proState.camera?.id === c.id)));
 
-  hddList.innerHTML = '';
-  EQUIPMENT_CATALOG.hdd.forEach(h => hddList.appendChild(makeItem(h, 'hdd', proState.hdd?.id === h.id)));
+  containers.dvr.innerHTML = '';
+  EQUIPMENT_CATALOG.dvr.forEach(d => containers.dvr.appendChild(makeItem(d, 'dvr', proState.dvr?.id === d.id)));
+
+  containers.hdd.innerHTML = '';
+  EQUIPMENT_CATALOG.hdd.forEach(h => containers.hdd.appendChild(makeItem(h, 'hdd', proState.hdd?.id === h.id)));
 }
 
 function updateProTotal() {
@@ -529,23 +533,34 @@ function openFullMap() {
 
 function updateMapMarker(coords, address) {
     myMap.geoObjects.removeAll();
-    const placemark = new ymaps.Placemark(coords, { iconCaption: 'Загрузка...' }, { preset: 'islands#blueDotIconWithCaption' });
+    const placemark = new ymaps.Placemark(coords, {
+      iconCaption: address || 'Загрузка...'
+    }, {
+      preset: 'islands#dotIcon',
+      iconColor: '#00d4ff',
+      draggable: true
+    });
+
+    placemark.events.add('dragend', function(e) {
+      const newCoords = placemark.geometry.getCoordinates();
+      getAddress(newCoords);
+    });
+
     myMap.geoObjects.add(placemark);
 
-    selectedAddress = address;
-    placemark.properties.set('iconCaption', address);
-    if ($('map-selection-info')) $('map-selection-info').textContent = address;
+    selectedAddress = address || (coords[0].toFixed(6) + ', ' + coords[1].toFixed(6));
+    if ($('map-selection-info')) $('map-selection-info').textContent = selectedAddress;
 
     const input = $('edit-address');
     if (input) {
-        input.value = address;
+        input.value = address || '';
         input.classList.remove('error');
     }
 
     const confirmBtn = $('btn-map-confirm');
     if (confirmBtn) {
         confirmBtn.disabled = false;
-        confirmBtn.innerHTML = 'Подтвердить';
+        confirmBtn.innerHTML = 'Подтвердить выбор';
     }
 }
 
@@ -563,7 +578,7 @@ function getAddress(coords) {
     toast('API Яндекс.Карт недоступно', 'error');
     if (confirmBtn) {
       confirmBtn.disabled = false;
-      confirmBtn.innerHTML = 'Подтвердить';
+      confirmBtn.innerHTML = 'Подтвердить выбор';
     }
     return;
   }
@@ -578,8 +593,7 @@ function getAddress(coords) {
         obj = res2.geoObjects.get(0);
         if (obj) updateMapMarker(coords, obj.getAddressLine());
         else {
-          selectedAddress = '';
-          if ($('map-selection-info')) $('map-selection-info').textContent = 'Адрес не найден';
+          updateMapMarker(coords, null);
         }
       });
     }
@@ -591,7 +605,7 @@ function getAddress(coords) {
   }).finally(() => {
     if (confirmBtn) {
       confirmBtn.disabled = false;
-      confirmBtn.innerHTML = 'Подтвердить';
+      confirmBtn.innerHTML = 'Подтвердить выбор';
     }
   });
 }
@@ -1143,6 +1157,15 @@ function bindCalculator() {
       $$('.cam-type-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       state.calc.cameraType = card.dataset.type;
+
+      // Animation for selection
+      anime({
+        targets: card.querySelector('.card-icon svg'),
+        scale: [1, 1.2, 1],
+        rotate: '10deg',
+        duration: 400,
+        easing: 'easeOutBack'
+      });
     });
   });
 
@@ -1301,7 +1324,24 @@ function bindCalculator() {
     if (!panel) return;
     const isOpen = panel.style.display !== 'none';
     panel.style.display = isOpen ? 'none' : 'block';
-    if (!isOpen) { renderProMode(); updateProTotal(); }
+    if (!isOpen) {
+      renderProMode();
+      updateProTotal();
+      // Initialize tab listeners if first time
+      if (!panel.dataset.tabsBound) {
+        panel.querySelectorAll('.pro-tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            panel.querySelectorAll('.pro-tab').forEach(t => t.classList.remove('active'));
+            panel.querySelectorAll('.pro-cat-pane').forEach(p => p.style.display = 'none');
+            tab.classList.add('active');
+            const cat = tab.dataset.proCat;
+            document.getElementById(`pro-cat-${cat}`).style.display = 'block';
+            haptic('selection');
+          });
+        });
+        panel.dataset.tabsBound = "true";
+      }
+    }
     haptic('light');
   });
 
@@ -1462,10 +1502,10 @@ function renderProfile() {
       const list = document.getElementById('ref-invites-list');
       if (section) section.style.display = 'block';
       if (list) {
-        list.innerHTML = data.invites.map(inv =>
-          `<div style="display:flex;justify-content:space-between;background:var(--bg-secondary);border-radius:8px;padding:8px 12px;font-size:12px;">
-            <span>${inv.full_name}</span>
-            <span style="color:var(--text-muted);">${new Date(inv.created_at).toLocaleDateString('ru-RU')}</span>
+        list.innerHTML = data.invites.map((inv, idx) =>
+          `<div class="invite-pill" style="animation-delay: ${idx * 0.1}s">
+            <span style="color:var(--text-primary); font-weight:600;">${inv.full_name}</span>
+            <span style="color:var(--accent-2); font-size:10px;">АКТИВЕН</span>
           </div>`
         ).join('');
       }
