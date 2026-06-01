@@ -680,6 +680,33 @@ async function init() {
     haptic('medium');
     performAuth();
   });
+
+  // Listen for guest login button
+  $('btn-guest-login')?.addEventListener('click', () => {
+    haptic('medium');
+    enterAsGuest();
+  });
+}
+
+/**
+ * Вход в режиме гостя (без Telegram авторизации).
+ */
+function enterAsGuest() {
+  const guestUser = {
+    id: 0,
+    tg_id: 0,
+    username: 'guest',
+    full_name: 'Гость',
+    role: 'user',
+    is_guest: true
+  };
+
+  state.user = guestUser;
+  state.orderCount = 0;
+  StorageService.set('user', guestUser);
+
+  toast('Вход выполнен в гостевом режиме');
+  setTimeout(() => showScreen('home'), 500);
 }
 
 /**

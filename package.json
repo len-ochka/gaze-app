@@ -1,0 +1,15 @@
+{
+  "name": "gaze-twa-root",
+  "version": "1.0.0",
+  "description": "GAZE System Root Package for Railway compatibility",
+  "main": "server/app.js",
+  "scripts": {
+    "start": "cd server && npm start"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}
