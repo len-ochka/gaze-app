@@ -22,7 +22,7 @@
   <!-- ══════════════ LANDING ══════════════ -->
   <div class="screen landing-screen active" id="screen-landing">
     <div class="landing-content">
-      <div class="landing-hero">
+      <div class="landing-hero animate-in">
         <div class="auth-logo-wrap">
           <svg class="auth-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
@@ -34,11 +34,10 @@
         <p>Мы создаем интеллектуальные системы видеонаблюдения, которые защищают то, что вам дорого. Надежно, просто, эффективно.</p>
         <button class="btn btn-primary" id="btn-landing-start">Начать работу</button>
       </div>
-      <div class="landing-sections">
+      <div class="landing-sections animate-in stagger-1">
         <section>
           <h3>Интеллектуальная безопасность</h3>
           <p>GAZE — это молодая и амбициозная команда инженеров-перфекционистов, поставивших своей целью переосмыслить стандарты технической безопасности. Мы не просто устанавливаем камеры — мы проектируем надежные экосистемы защиты для вашего дома и бизнеса.</p>
-          <p style="margin-top: 10px;">В своей работе мы используем только сертифицированное оборудование мировых лидеров отрасли (Hikvision, HiWatch), что гарантирует безотказную работу в любых условиях. Наш подход — это индивидуальный подбор решений под уникальные особенности каждого участка, безупречный монтаж и экспертная поддержка на всех этапах эксплуатации.</p>
         </section>
       </div>
     </div>
@@ -568,7 +567,7 @@
           <button id="btn-copy-ref-code" style="background:var(--accent-dim); border:var(--border-thin); border-radius:10px; padding:8px 14px; color:var(--accent); font-size:11px; font-weight:700; cursor:pointer;">КОПИРОВАТЬ</button>
         </div>
 
-        <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:20px;">Поделитесь ссылкой: друг получит <b style="color:var(--accent-gold);">скидку 5%</b>, а вы — <b style="color:var(--accent-2);">1% кэшбэка</b> от его заказа.</p>
+        <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:20px;">Поделитесь ссылкой: друг получит <b style="color:var(--accent-gold);">скидку 5 000 ₽</b> на монтаж, а вы — <b style="color:var(--accent-2);">бонус на счет</b>.</p>
 
         <div style="display:flex; gap:10px;">
           <button class="btn btn-primary" id="btn-share-ref-tg" style="padding:12px; font-size:13px; flex:1; background:var(--accent); color:#000;">
@@ -660,23 +659,26 @@
   <div class="screen guide-screen" id="screen-guide">
     <div class="screen-header"><h2>Гайд по технологиям</h2></div>
     <div class="faq-scroll" style="flex:1; overflow-y:auto; padding:20px;">
-      <!-- CAMERAS section -->
       <div style="margin-bottom:20px;">
-        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">📷 Камеры</div>
-        <div class="faq-item"><h4>Разрешение: 2МП / 4МП / 8МП (4K)</h4><p>2МП (1080p) — базовый уровень, подходит для общего наблюдения. 4МП — оптимум: детализация номеров авто, лиц. 8МП 4K — максимум, позволяет делать цифровой зум без потери качества.</p></div>
-        <div class="faq-item"><h4>Уличные vs купольные</h4><p>Уличные (bullet/turret) — мощная ИК-подсветка, видят далеко. Купольные — незаметны, защищены от вандализма, идеальны для помещений и входных групп.</p></div>
-        <div class="faq-item"><h4>ColorVu / Full Color</h4><p>Технология цветного ночного видения без прожектора. Использует сверхчувствительный сенсор и дополнительную линзу. Видеозапись в цвете даже при почти полной темноте.</p></div>
-        <div class="faq-item"><h4>PTZ камеры</h4><p>Pan-Tilt-Zoom — поворотные камеры с моторизованным зумом. Одна PTZ заменяет 3-4 фиксированных камеры. Умеют автоматически отслеживать движущийся объект.</p></div>
-        <div class="faq-item"><h4>AI-аналитика</h4><p>Распознавание лиц, номеров автомобилей, детекция вторжения в зону, подсчёт людей. Снижает нагрузку на оператора — система сама уведомит при нарушении.</p></div>
-      </div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">📷 Выбор камер</div>
 
-      <!-- DVR/NVR section -->
-      <div style="margin-bottom:20px;">
-        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">📼 Регистраторы</div>
-        <div class="faq-item"><h4>NVR vs DVR</h4><p>NVR (сетевой) — работает с IP-камерами по витой паре через PoE. DVR — устаревший стандарт для аналоговых камер по коаксиалу. Мы устанавливаем только NVR.</p></div>
-        <div class="faq-item"><h4>Что такое PoE?</h4><p>Power over Ethernet — питание и видеосигнал по одному кабелю «витая пара». Один кабель вместо двух. Надёжнее, дешевле в монтаже, нет помех.</p></div>
-        <div class="faq-item"><h4>Сжатие H.265+</h4><p>Современный кодек экономит до 50% места на диске по сравнению с H.264. При том же качестве архив хранится вдвое дольше.</p></div>
-        <div class="faq-item"><h4>Удалённый доступ</h4><p>Все регистраторы Hikvision и Dahua поддерживают приложения iVMS-4500 / DMSS. Смотрите камеры в реальном времени с телефона из любой точки мира.</p></div>
+        <div class="guide-item animate-in stagger-1" onclick="this.classList.toggle('guide-item-active')">
+          <div class="guide-item-zoom">🔫</div>
+          <h4>Уличная (Bullet)</h4>
+          <p>Цилиндрический корпус. Видимый фактор защиты. Мощная ИК-подсветка. Идеальна для периметра.</p>
+        </div>
+
+        <div class="guide-item animate-in stagger-2" onclick="this.classList.toggle('guide-item-active')">
+          <div class="guide-item-zoom">⚪</div>
+          <h4>Купольная (Dome)</h4>
+          <p>Компактная и эстетичная. Широкий угол обзора. Подходит для офисов, квартир и подъездов.</p>
+        </div>
+
+        <div class="guide-item animate-in stagger-3" onclick="this.classList.toggle('guide-item-active')">
+          <div class="guide-item-zoom">🔍</div>
+          <h4>Разрешение</h4>
+          <p>2МП — базово. 4МП — стандарт четкости. 8МП (4K) — для тех, кто хочет видеть каждую деталь и номер авто.</p>
+        </div>
       </div>
 
       <!-- HDD section -->

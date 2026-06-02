@@ -665,3 +665,39 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.faq-item, .guide-item {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.faq-item h4, .guide-item h4 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  color: var(--accent);
+}
+
+.faq-item p, .guide-item p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.guide-item p {
+  max-height: 0;
+  opacity: 0;
+  transition: all 0.4s ease;
+  margin-top: 0;
+}
+
+.guide-item.guide-item-active p {
+  max-height: 200px;
+  opacity: 1;
+  margin-top: 10px;
+}

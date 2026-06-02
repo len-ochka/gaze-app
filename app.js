@@ -2,54 +2,54 @@
 
 // ─── ПРАЙС-ЛИСТ ───────────────────────────────────────────────────────────────
 const PRICES = {
-  // Камеры
-  cam_budget:    1490,   // Бюджетная камера 1МП
-  cam_standard:  2900,   // Стандартная 2МП
-  cam_premium:   5900,   // Премиум 4K/8МП
+  // Камеры (HiWatch / Hikvision Market 2026)
+  cam_budget:    2400,   // OEM 2МП
+  cam_standard:  4800,   // HiWatch 2МП IP
+  cam_premium:   12500,  // Hikvision 4K AcuSense
 
   // Регистраторы
-  dvr_budget_4:  4900,
-  dvr_budget_8:  7900,
-  dvr_standard_4: 8500,
-  dvr_standard_8: 14900,
-  dvr_standard_16: 24900,
-  dvr_premium_4:  14900,
-  dvr_premium_8:  24900,
-  dvr_premium_16: 39900,
+  dvr_budget_4:  6900,
+  dvr_budget_8:  9800,
+  dvr_standard_4: 12500,
+  dvr_standard_8: 18900,
+  dvr_standard_16: 32000,
+  dvr_premium_4:  24000,
+  dvr_premium_8:  38000,
+  dvr_premium_16: 55000,
 
-  // Кабель за метр
-  cable_budget:   18,    // UTP Cat5e
-  cable_standard: 28,    // UTP Cat5e экранированный
-  cable_premium:  55,    // Коаксиал RG59 + питание
+  // Кабель за метр (UTP Cat5e / Cat6)
+  cable_budget:   45,
+  cable_standard: 65,
+  cable_premium:  110,
 
   // PoE коммутаторы
-  poe_budget_4:   1900,
-  poe_budget_8:   3200,
-  poe_standard_4: 3200,
-  poe_standard_8: 5900,
-  poe_premium_4:  5900,
-  poe_premium_8:  9800,
-  poe_premium_16: 16900,
+  poe_budget_4:   3500,
+  poe_budget_8:   5800,
+  poe_standard_4: 6500,
+  poe_standard_8: 9800,
+  poe_premium_4:  12000,
+  poe_premium_8:  18500,
+  poe_premium_16: 28000,
 
-  // HDD
-  hdd_budget:  2500,   // 1ТБ
-  hdd_standard: 3500,  // 2ТБ
-  hdd_premium: 6500,   // 4ТБ
+  // HDD (WD Purple / SkyHawk)
+  hdd_budget:  4500,   // 1ТБ
+  hdd_standard: 7200,  // 2ТБ
+  hdd_premium: 12500,  // 4ТБ
 
   // Монтаж (за точку) - Московские цены 2026
-  install_budget:   2500,   // Базовый (внутренние)
-  install_standard: 3500,   // Стандартный (уличные до 3м)
-  install_premium:  4500,   // Высотный/Сложный (>3м)
+  install_budget:   3500,
+  install_standard: 5000,
+  install_premium:  7500,
 
-  install_nvr: 3000,        // Монтаж и настройка NVR
-  setup_remote: 1500,       // Удаленный доступ
+  install_nvr: 5000,
+  setup_remote: 2500,
 
   // Дополнительно
-  cable_work: 100,          // Прокладка кабеля за метр
-  mic: 1200,
-  courier: 1000,
-  maintenance: 2500,  // Ежемесячное ТО
-  router_4g: 6500
+  cable_work: 150,
+  mic: 2200,
+  courier: 1500,
+  maintenance: 3500,
+  router_4g: 8500
 };
 
 // ─── ПАКЕТЫ ───────────────────────────────────────────────────────────────────
@@ -327,8 +327,10 @@ function calcCamerasForArea(area, type) {
 }
 
 function calcCableForArea(area, camCount, type) {
-  const avgDist = Math.ceil(Math.sqrt(area) / 2 * 1.3);
-  return avgDist * camCount + 10;
+  // Реалистичный расчет: сторона квадрата * коэффициент разброса
+  const side = Math.sqrt(area);
+  const avgRun = side * 0.85;
+  return Math.ceil(avgRun * camCount);
 }
 
 function getDvrKey(pkg, count) {
@@ -420,10 +422,28 @@ function buildSpec(pkg, area, camType, opts) {
 
 // ─── ОФОРМЛЕНИЕ ЗАКАЗА ────────────────────────────────────────────────────────
 async function doOrder() {
-  if (!state.user) { toast('Войдите в аккаунт', 'error'); return; }
-  if (!state.user.phone) {
+  if (!state.user || state.user.isGuest) {
+    toast('Войдите через Telegram для оформления заказа', 'error');
+    setTimeout(() => performAuth(), 1500);
+    return;
+  }
+
+  const phone = state.user.phone || '';
+  const email = state.user.email || '';
+
+  // Строгая валидация RU номера
+  const cleanPhone = phone.replace(/\D/g, '');
+  if (!/^(7|8)9\d{9}$/.test(cleanPhone)) {
     haptic('error');
-    toast('Укажите телефон в профиле для связи', 'error');
+    toast('Некорректный номер телефона в профиле', 'error');
+    setTimeout(() => showScreen('profile'), 1500);
+    return;
+  }
+
+  // Валидация почты если она указана
+  if (email && !isEmail(email)) {
+    haptic('error');
+    toast('Некорректный Email в профиле', 'error');
     setTimeout(() => showScreen('profile'), 1500);
     return;
   }
@@ -901,27 +921,23 @@ async function performAuth() {
   }
   if (retryBtn) retryBtn.style.display = 'none';
 
-  // Расширяем приложение на весь экран
   TelegramService.expand();
 
-  // Резервный таймер UI для предотвращения "бесконечного" ожидания пользователем
+  // Резервный таймер UI
   const uiFallbackTimer = setTimeout(() => {
     if (state.screen === 'auth' && retryBtn) {
       retryBtn.style.display = 'block';
-      if (statusEl) {
-        statusEl.textContent = 'СОЕДИНЕНИЕ УСТАНАВЛИВАЕТСЯ...';
-      }
+      if (statusEl) statusEl.textContent = 'СЕТЬ ЗАМЕДЛЕНА...';
     }
-  }, 7000);
+  }, 5000);
 
   try {
-    // 1. Попытка синхронизации с сервером (внутри storage.js 4 попытки с задержкой)
+    // Механизм привязки гостя к Telegram
+    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
+
+    // Попытка синхронизации с сервером
     const syncResult = await StorageService.syncUser(4).catch(err => {
-        // Если это ошибка авторизации (401/403), пробуем обновить данные из TG
-        if (err.status === 401 || err.status === 403) {
-            console.log('[App] Auth error, clearing cache and retrying...');
-            StorageService.clearSession();
-        }
+        if (err.status === 401 || err.status === 403) StorageService.clearSession();
         throw err;
     });
 
@@ -932,58 +948,39 @@ async function performAuth() {
       state.orderCount = StorageService.getOrderCount();
       renderConnBadge();
 
-      // Настройка прав доступа и интерфейса
       if (state.user?.role === 'admin') $('nav-admin').style.display = 'flex';
       if (state.orderCount > 0) $('nav-support').style.display = 'flex';
 
-      // 2. Фоновое обновление цен (не блокирует вход)
       StorageService.getPrices().then(remotePrices => {
         if (remotePrices) Object.assign(PRICES, remotePrices);
       }).catch(() => {});
 
-      // Успешный вход
       if (statusEl) statusEl.textContent = 'ГОТОВО';
       haptic('success');
-      setTimeout(() => showScreen('home'), 500);
+      setTimeout(() => showScreen('home'), 400);
     } else {
       throw new Error('AUTH_FAILED');
     }
   } catch (e) {
-    console.error('[App] Критическая ошибка авторизации:', e);
+    console.error('[App] Auth error:', e);
     clearTimeout(uiFallbackTimer);
 
-    if (statusEl) {
-      statusEl.textContent = 'ОШИБКА СВЯЗИ';
-      statusEl.style.color = '#ff4d4d';
+    // Обработка блокировок РФ (если Telegram API не отвечает)
+    if (e.message.includes('Failed to fetch') || e.name === 'AbortError') {
+       if (statusEl) statusEl.textContent = 'ОШИБКА СЕТИ (CORS/VPN?)';
+    } else {
+       if (statusEl) statusEl.textContent = 'ОШИБКА АВТОРИЗАЦИИ';
     }
+
     if (retryBtn) retryBtn.style.display = 'block';
 
-    // 3. Стратегия выживания: пробуем войти через локальный кэш
     const cachedUser = StorageService.getUser();
-    if (cachedUser) {
+    if (cachedUser && !cachedUser.isGuest) {
       state.user = cachedUser;
-      state.orderCount = StorageService.getOrderCount();
-      toast('Вход выполнен в автономном режиме', 'warning');
-      setTimeout(() => showScreen('home'), 1500);
+      toast('Вход через кэш (офлайн)');
+      setTimeout(() => showScreen('home'), 1000);
     } else {
       haptic('error');
-      // Если это не TWA и нет кэша - выводим подсказку
-      if (!window.Telegram?.WebApp?.initData) {
-        toast('Пожалуйста, откройте приложение в Telegram', 'error');
-
-        // Show external bot link if not in TWA
-        const authStatus = document.getElementById('auth-status');
-        if (authStatus) {
-          authStatus.innerHTML = `
-            <div style="margin-top:20px;">
-              <p style="color:var(--text-secondary);margin-bottom:15px;">Для работы приложения необходим Telegram</p>
-              <button onclick="window.open('https://t.me/gaze_video_bot', '_blank')" class="btn btn-primary">
-                Перейти в Бота
-              </button>
-            </div>
-          `;
-        }
-      }
     }
   } finally {
     state.isAuthInProgress = false;
@@ -1390,38 +1387,40 @@ function buildAndShowResult() {
   });
   state.calc.result = spec;
 
+  // Динамические иконки камер
+  const camIcon = state.calc.cameraType === 'indoor' ? '⚪' : '🔫'; // Купол vs Цилиндр (bullet)
+
   const container = $('result-items');
   if (container) {
-    container.innerHTML = spec.items.map(i =>
-      `<div class="compat-card">
-        <div class="compat-card-icon" style="font-size:20px;background:none;">${i.icon}</div>
-        <div class="compat-card-body">
-          <div class="compat-card-name">${i.name}</div>
-          <div class="compat-card-spec">${i.spec}</div>
+    container.innerHTML = spec.items.map(i => {
+      let icon = i.icon;
+      if (i.name.includes('камера')) icon = camIcon;
+
+      return `<div class="invoice-row animate-in">
+        <div style="display:flex; gap:12px;">
+          <span style="font-size:18px;">${icon}</span>
+          <div>
+            <div style="font-size:14px; font-weight:600;">${i.name}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${i.spec}</div>
+          </div>
         </div>
-        <div class="compat-card-right">
-          <div class="compat-price">${fmt(i.price)}</div>
-          <div class="compat-qty">${i.qty} шт.</div>
+        <div style="text-align:right;">
+          <div style="font-size:14px; font-weight:700;">${fmt(i.price)}</div>
+          <div style="font-size:10px; color:var(--text-secondary);">${i.qty} шт.</div>
         </div>
-      </div>`
-    ).join('');
+      </div>`;
+    }).join('');
   }
 
   const summary = $('result-summary');
   if (summary) {
-    const totalStr = fmt(spec.total);
     summary.innerHTML = `
-      <div class="total-row"><span class="total-label">📷 Камер</span><span class="total-value">${spec.camCount} шт.</span></div>
-      <div class="total-row"><span class="total-label">🔌 Кабель</span><span class="total-value">~${spec.cableM} м</span></div>
-      <div class="total-row"><span class="total-label">📦 Пакет</span><span class="total-value">${pkg.name}</span></div>
-      <div class="total-row"><span class="total-label">🔧 Работы</span><span class="total-value">${fmt(spec.laborTotal)}</span></div>
-      <div class="total-row total-final">
-        <span class="total-label">💰 ИТОГО</span>
-        <span class="total-value">
-          <span class="glitch-text" data-text="${totalStr}">${totalStr}</span>
-          ${state.orderCount >= 3 ? ' <span style="font-size:12px;color:var(--accent);">(VIP -5%)</span>' : ''}
-        </span>
-      </div>`;
+      <div class="invoice-total">
+        <div style="font-size:12px; color:var(--text-secondary); font-weight:400; margin-bottom:4px;">ИТОГО К ОПЛАТЕ</div>
+        <div>${fmt(spec.total)}</div>
+        ${state.orderCount >= 3 ? '<div style="font-size:10px; color:var(--accent); margin-top:4px;">Применена скидка VIP-клиента 5%</div>' : ''}
+      </div>
+    `;
   }
 }
 
@@ -1639,10 +1638,10 @@ function bindProfile() {
 
     // Валидация адреса
     setLoading($('btn-save-profile'), true);
-    const isAddrValid = await validateManualAddress(address);
-    if (!isAddrValid) {
+    // Пропускаем жесткую валидацию ymaps если есть риск 405/сетевых ошибок, но проверяем длину
+    if (address.length > 0 && address.length < 5) {
         setLoading($('btn-save-profile'), false);
-        fieldErr('edit-address', 'Такого адреса не существует, проверьте правильность ввода');
+        fieldErr('edit-address', 'Введите более подробный адрес');
         return;
     }
 
