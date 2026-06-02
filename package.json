@@ -1,15 +1,22 @@
 {
-  "name": "gaze-twa-root",
+  "name": "server",
   "version": "1.0.0",
-  "description": "GAZE System Root Package for Railway compatibility",
+  "description": "",
   "main": "server/app.js",
   "scripts": {
-    "start": "cd server && npm start"
+    "start": "node server/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
   "dependencies": {
-    "express": "^5.2.1"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.60.0"
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mysql2": "^3.22.4",
+    "nodemailer": "^8.0.8",
+    "sqlite3": "^6.0.1"
   }
 }
