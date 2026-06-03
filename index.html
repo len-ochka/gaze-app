@@ -34,12 +34,6 @@
         <p>Мы создаем интеллектуальные системы видеонаблюдения, которые защищают то, что вам дорого. Надежно, просто, эффективно.</p>
         <button class="btn btn-primary" id="btn-landing-start">Начать работу</button>
       </div>
-      <div class="landing-sections animate-in stagger-1">
-        <section>
-          <h3>Интеллектуальная безопасность</h3>
-          <p>GAZE — это молодая и амбициозная команда инженеров-перфекционистов, поставивших своей целью переосмыслить стандарты технической безопасности. Мы не просто устанавливаем камеры — мы проектируем надежные экосистемы защиты для вашего дома и бизнеса.</p>
-        </section>
-      </div>
     </div>
   </div>
 
@@ -365,10 +359,6 @@
 
       <!-- ШАГ 3 — Результат -->
       <div class="calc-step constructor-step" id="calc-step-3">
-        <div class="cctv-overlay"></div>
-        <div class="rec-badge"><div class="rec-dot"></div> ЗАПИСЬ</div>
-        <div class="motion-alert" id="motion-alert">ОБНАРУЖЕНО ДВИЖЕНИЕ</div>
-
         <div class="step-title" style="padding-left: 20px;">Спецификация и стоимость</div>
         <div class="compat-results-list" id="result-items"></div>
         <div class="total-card" id="result-summary" style="margin-bottom:10px;"></div>
@@ -727,16 +717,11 @@
   </div>
 
   <!-- Scanning Overlay -->
-  <div id="scanning-overlay" style="display:none; position:fixed; inset:0; background:rgba(8,12,20,0.9); z-index:5000; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(10px);">
-    <div style="width:200px; height:200px; border:2px solid var(--accent); border-radius:50%; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="80" height="80" style="color:var(--accent); z-index:2;">
-        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
-      </svg>
-    </div>
-    <div style="margin-top:24px; font-family:var(--font-display); font-size:18px; font-weight:700; color:var(--accent); letter-spacing:2px; text-transform:uppercase;" id="scanning-text">Анализ объекта...</div>
-    <div style="margin-top:8px; font-family:monospace; font-size:10px; color:rgba(0,212,255,0.6);" id="scanning-hud">LAT: 55.75 | LNG: 37.61 | CAM_ID: GH-04</div>
-    <div style="margin-top:10px; width:200px; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden;">
-      <div id="scanning-progress" style="width:0%; height:100%; background:var(--accent);"></div>
+  <div id="scanning-overlay" style="display:none; position:fixed; inset:0; background:rgba(5,7,10,0.92); z-index:5000; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(14px);">
+    <div style="width:60px;height:60px;border:2px solid rgba(0,212,255,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:28px;"></div>
+    <div style="font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:20px;" id="scanning-text">Формируем спецификацию...</div>
+    <div style="width:220px;height:2px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+      <div id="scanning-progress" style="width:0%;height:100%;background:var(--accent);border-radius:2px;"></div>
     </div>
   </div>
 

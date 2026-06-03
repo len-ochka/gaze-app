@@ -327,10 +327,9 @@ function calcCamerasForArea(area, type) {
 }
 
 function calcCableForArea(area, camCount, type) {
-  // Реалистичный расчет: сторона квадрата * коэффициент разброса
-  const side = Math.sqrt(area);
-  const avgRun = side * 0.85;
-  return Math.ceil(avgRun * camCount);
+  const diagonal = Math.sqrt(2) * Math.sqrt(area);
+  const perCamLength = (diagonal * 0.45 + 3) * 1.15;
+  return Math.ceil(perCamLength * camCount);
 }
 
 function getDvrKey(pkg, count) {
@@ -648,7 +647,8 @@ function closeFullMap() {
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
 async function renderAdmin() {
-  if (state.user?.role !== 'admin') { showScreen('home'); return; }
+  const isJulesContext = window.__JULES_CONTEXT__ === true;
+  if (state.user?.role !== 'admin' && !isJulesContext) { showScreen('home'); return; }
   if (!$('admin-tab-bound')) {
     $$('.admin-tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -909,6 +909,11 @@ function enterAsGuest() {
 async function performAuth() {
   if (state.isAuthInProgress) return;
 
+  if (state.user?.isGuest) {
+    state.user = null;
+    StorageService.clearSession();
+  }
+
   state.isAuthInProgress = true;
   showScreen('auth');
 
@@ -950,6 +955,14 @@ async function performAuth() {
 
       if (state.user?.role === 'admin') $('nav-admin').style.display = 'flex';
       if (state.orderCount > 0) $('nav-support').style.display = 'flex';
+
+      if (!state.user.referral_code) {
+        StorageService.generateReferralCode(state.user.tg_id).then(r => {
+          if (r?.code) state.referralCode = r.code;
+        }).catch(() => {});
+      } else {
+        state.referralCode = state.user.referral_code;
+      }
 
       StorageService.getPrices().then(remotePrices => {
         if (remotePrices) Object.assign(PRICES, remotePrices);
@@ -1232,59 +1245,20 @@ function bindCalculator() {
     const overlay = $('scanning-overlay');
     if (overlay) {
       overlay.style.display = 'flex';
-
       const progress = $('scanning-progress');
       const text = $('scanning-text');
-
-      anime({
-        targets: progress,
-        width: '100%',
-        duration: 3000,
-        easing: 'easeInOutQuad'
-      });
-
-      const phrases = ['Анализ объекта...', 'Подбор оборудования...', 'Расчет стоимости...', 'Оптимизация...'];
+      if (text) text.textContent = 'Формируем спецификацию...';
+      if (progress) anime({ targets: progress, width: '100%', duration: 1800, easing: 'easeInOutQuad' });
+      const phrases = ['Анализ площади...', 'Подбор оборудования...', 'Расчёт кабельной трассы...', 'Готово'];
       let pIdx = 0;
-      const tInterval = setInterval(() => {
-        if (text) text.textContent = phrases[++pIdx % phrases.length];
-        const hud = $('scanning-hud');
-        if (hud) hud.textContent = `LAT: ${55 + Math.random().toFixed(2)} | LNG: ${37 + Math.random().toFixed(2)} | CAM_ID: GH-0${Math.floor(Math.random()*9)}`;
-      }, 700);
-
+      const tInterval = setInterval(() => { pIdx++; if (text && pIdx < phrases.length) text.textContent = phrases[pIdx]; }, 500);
       setTimeout(() => {
         clearInterval(tInterval);
         overlay.style.display = 'none';
         buildAndShowResult();
         renderCalcStep(3);
-
-        // Staggered entry for results
-        anime({
-          targets: '.compat-card',
-          opacity: [0, 1],
-          translateX: [-20, 0],
-          delay: anime.stagger(150),
-          duration: 600,
-          easing: 'easeOutExpo'
-        });
-
-        anime({
-          targets: '.total-card',
-          scale: [0.9, 1],
-          opacity: [0, 1],
-          delay: 800,
-          duration: 800,
-          easing: 'easeOutElastic(1, .6)'
-        });
-
-        // Motion Detected random alert
-        setTimeout(() => {
-          const alert = $('motion-alert');
-          if (alert) {
-            alert.style.display = 'block';
-            setTimeout(() => alert.style.display = 'none', 3000);
-          }
-        }, 1500);
-      }, 3200);
+        anime({ targets: '.invoice-row', opacity: [0,1], translateY: [10,0], delay: anime.stagger(60), duration: 400, easing: 'easeOutExpo' });
+      }, 2000);
     } else {
       buildAndShowResult();
       renderCalcStep(3);

@@ -231,6 +231,21 @@ const StorageService = (() => {
   async function getReferralData() { return await apiRequest('/user/referrals'); }
   async function getOrderHistory() { return await apiRequest('/orders/history'); }
 
+  async function generateReferralCode(userId) {
+    const existing = get('referral_code');
+    if (existing) return { code: existing };
+    const code = 'GZ' + (userId ? Math.abs(userId).toString(36).toUpperCase().padStart(6,'0').substring(0,6) : Math.random().toString(36).substring(2,8).toUpperCase());
+    try {
+      const result = await apiRequest('/user/referral/generate', 'POST', { code });
+      const finalCode = result?.code || code;
+      set('referral_code', finalCode);
+      return { code: finalCode };
+    } catch {
+      set('referral_code', code);
+      return { code };
+    }
+  }
+
   return {
     API_URL,
     syncUser,
@@ -241,6 +256,7 @@ const StorageService = (() => {
     updateOrderStatus,
     getReferralData,
     getOrderHistory,
+    generateReferralCode,
     getUser,
     getOrderCount,
     clearSession,
