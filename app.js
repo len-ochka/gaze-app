@@ -408,8 +408,8 @@ function buildSpec(pkg, area, camType, opts) {
   if (opts.maintenance) items.push({ name: 'Техническое обслуживание', spec: 'Ежемесячный выезд, чистка, проверка дисков', price: PRICES.maintenance, qty: 1, icon: '🛠️' });
   items.push({ name: 'Монтаж и настройка системы', spec: camCount + ' точек + NVR + кабель', price: laborTotal, qty: 1, icon: '🔧' });
 
-  const equipmentTotal = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal + internetTotal;
-  let total = equipmentTotal + laborTotal + (opts.maintenance ? PRICES.maintenance : 0);
+  const equipmentTotal = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal + internetTotal + (opts.maintenance ? PRICES.maintenance : 0);
+  let total = equipmentTotal + laborTotal;
 
   // Округляем итог до сотен
   total = Math.round(total / 100) * 100;
@@ -509,9 +509,18 @@ function openFullMap() {
   if (modal) modal.style.display = 'block';
   haptic('light');
 
-  const currentAddr = $('edit-address')?.value;
+  if (!window.ymaps) {
+    const script = document.createElement('script');
+    script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=' + (window.YANDEX_MAPS_KEY || '');
+    script.onload = () => initYandexMap();
+    document.head.appendChild(script);
+    return;
+  }
+  initYandexMap();
+}
 
-  if (!window.ymaps) return;
+function initYandexMap() {
+  const currentAddr = $('edit-address')?.value;
   window.ymaps.ready(() => {
     if (!myMap) {
       myMap = new ymaps.Map("big-map", {
@@ -647,8 +656,7 @@ function closeFullMap() {
 
 // ─── ADMIN ────────────────────────────────────────────────────────────────────
 async function renderAdmin() {
-  const isJulesContext = window.__JULES_CONTEXT__ === true;
-  if (state.user?.role !== 'admin' && !isJulesContext) { showScreen('home'); return; }
+  if (state.user?.role !== 'admin') { showScreen('home'); return; }
   if (!$('admin-tab-bound')) {
     $$('.admin-tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -697,8 +705,13 @@ async function renderAdminContent(tab) {
           <input type="number" value="${val}" onchange="updatePrice('${key}', this.value)" style="width:80px; background:transparent; color:white; border:1px solid var(--glass-border); border-radius:4px; text-align:right;">
         </div>`).join('');
     }
-    const logs = await StorageService.apiRequest('/admin/logs');
-    $('admin-logs-list').innerHTML = logs.map(l => `<div class="admin-log-row" style="font-size:11px; color:${l.level === 'error' ? '#ff4d4d' : 'var(--text-muted)'}; margin-bottom:4px; padding:4px; border-bottom:1px solid var(--glass-border);">[${new Date(l.created_at).toLocaleTimeString()}] ${esc(l.message)}</div>`).join('');
+    if (tab === 'logs') {
+      const logs = await StorageService.apiRequest('/admin/logs');
+      const logsEl = $('admin-logs-list');
+      if (logsEl) {
+        logsEl.innerHTML = logs.map(l => `<div class="admin-log-row" style="font-size:11px; color:${l.level === 'error' ? '#ff4d4d' : 'var(--text-muted)'}; margin-bottom:4px; padding:4px; border-bottom:1px solid var(--glass-border);">[${new Date(l.created_at).toLocaleTimeString()}] ${esc(l.message)}</div>`).join('');
+      }
+    }
   } catch (e) { toast('Ошибка загрузки: ' + e.message, 'error'); }
 }
 
@@ -956,11 +969,11 @@ async function performAuth() {
       if (state.user?.role === 'admin') $('nav-admin').style.display = 'flex';
       if (state.orderCount > 0) $('nav-support').style.display = 'flex';
 
-      if (!state.user.referral_code) {
+      if (!state.user.isGuest && !state.user.referral_code) {
         StorageService.generateReferralCode(state.user.tg_id).then(r => {
           if (r?.code) state.referralCode = r.code;
         }).catch(() => {});
-      } else {
+      } else if (!state.user.isGuest) {
         state.referralCode = state.user.referral_code;
       }
 
@@ -1028,6 +1041,9 @@ function showScreen(name) {
 }
 
 function prepareNewScreen(name, el) {
+  if (name !== 'support') {
+    clearInterval(supportInterval);
+  }
   el.classList.add('active');
   state.screen = name;
 
@@ -1486,6 +1502,8 @@ function renderProfile() {
 }
 
 function applyPhoneMask(input) {
+  if (input.dataset.maskBound) return;
+  input.dataset.maskBound = 'true';
   const onInput = (e) => {
     let value = input.value.replace(/\D/g, '');
     if (value.startsWith('8')) value = '7' + value.slice(1);

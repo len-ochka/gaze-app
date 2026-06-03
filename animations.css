@@ -91,9 +91,17 @@ body::before, .app-wrapper::after, .auth-bg-orb, .rec-badge, .motion-alert, .dig
 /* ── 8. СТАТИЧНАЯ СМЕТА (ИНВОЙС) ── */
 .invoice-row {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 12px 0;
+  padding: 13px 0;
   border-bottom: 1px solid rgba(255,255,255,0.05);
+  gap: 10px;
+  animation: invoiceRow 0.4s ease both;
+}
+
+@keyframes invoiceRow {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .invoice-total {

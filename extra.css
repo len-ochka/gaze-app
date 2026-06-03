@@ -155,12 +155,6 @@ input[type="number"] { -moz-appearance: textfield; }
 
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-.compat-results-list {
-  padding: 10px;
-  background: rgba(0,0,0,0.2);
-  border-radius: var(--radius-md);
-  margin-top: 10px;
-}
 
 .compat-card {
   background: rgba(255,255,255,0.03);
