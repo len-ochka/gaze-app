@@ -1000,9 +1000,10 @@ function showScreen(name) {
     anime({
       targets: oldScreen,
       opacity: [1, 0],
-      scale: [1, 0.95],
-      duration: 300,
-      easing: 'easeInExpo',
+      scale: [1, 0.98],
+      translateY: [0, 10],
+      duration: 250,
+      easing: 'easeInQuad',
       complete: () => {
         oldScreen.classList.remove('active');
         prepareNewScreen(name, newScreen);
@@ -1017,14 +1018,14 @@ function prepareNewScreen(name, el) {
   el.classList.add('active');
   state.screen = name;
 
-  // Анимация появления нового экрана
+  // Анимация появления нового экрана — Elite Style
   anime({
     targets: el,
     opacity: [0, 1],
-    scale: [1.05, 1],
-    translateY: [10, 0],
-    duration: 450,
-    easing: 'easeOutExpo'
+    scale: [1.02, 1],
+    translateY: [15, 0],
+    duration: 500,
+    easing: 'easeOutQuart'
   });
 
   const nav = $('bottom-nav');
@@ -1232,17 +1233,8 @@ function bindCalculator() {
     if (overlay) {
       overlay.style.display = 'flex';
 
-      const radar = $('scanning-radar');
       const progress = $('scanning-progress');
       const text = $('scanning-text');
-
-      anime({
-        targets: radar,
-        rotate: '1turn',
-        duration: 2000,
-        easing: 'linear',
-        loop: true
-      });
 
       anime({
         targets: progress,
@@ -1259,22 +1251,8 @@ function bindCalculator() {
         if (hud) hud.textContent = `LAT: ${55 + Math.random().toFixed(2)} | LNG: ${37 + Math.random().toFixed(2)} | CAM_ID: GH-0${Math.floor(Math.random()*9)}`;
       }, 700);
 
-      // Эффект эха радара (динамические круги)
-      const pingInterval = setInterval(() => {
-        if (overlay.style.display === 'none') { clearInterval(pingInterval); return; }
-        const ping = document.createElement('div');
-        ping.className = 'scan-ping';
-        // Центрируем внутри оверлея
-        ping.style.left = '50%';
-        ping.style.top = '50%';
-        ping.style.transform = 'translate(-50%, -50%)';
-        overlay.appendChild(ping);
-        setTimeout(() => ping.remove(), 2000);
-      }, 600);
-
       setTimeout(() => {
         clearInterval(tInterval);
-        clearInterval(pingInterval);
         overlay.style.display = 'none';
         buildAndShowResult();
         renderCalcStep(3);

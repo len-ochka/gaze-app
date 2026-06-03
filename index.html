@@ -366,10 +366,6 @@
       <!-- ШАГ 3 — Результат -->
       <div class="calc-step constructor-step" id="calc-step-3">
         <div class="cctv-overlay"></div>
-        <div class="viewfinder-corner corner-tl"></div>
-        <div class="viewfinder-corner corner-tr"></div>
-        <div class="viewfinder-corner corner-bl"></div>
-        <div class="viewfinder-corner corner-br"></div>
         <div class="rec-badge"><div class="rec-dot"></div> REC</div>
         <div class="motion-alert" id="motion-alert">Motion Detected</div>
 
@@ -733,7 +729,6 @@
   <!-- Scanning Overlay -->
   <div id="scanning-overlay" style="display:none; position:fixed; inset:0; background:rgba(8,12,20,0.9); z-index:5000; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(10px);">
     <div style="width:200px; height:200px; border:2px solid var(--accent); border-radius:50%; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-      <div id="scanning-radar" style="position:absolute; inset:0; background:conic-gradient(from 0deg, var(--accent), transparent); opacity:0.3;"></div>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="80" height="80" style="color:var(--accent); z-index:2;">
         <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
       </svg>

@@ -9,12 +9,12 @@
 
 :root {
   /* Sensual Muted Palette — 'Bordello/Gothic High-Tech' */
-  --bg-primary: #05070a;
-  --bg-secondary: #0a0d14;
-  --bg-card: rgba(15, 20, 30, 0.6);
-  --bg-card-hover: rgba(25, 35, 50, 0.8);
-  --glass: rgba(8, 12, 20, 0.85);
-  --glass-border: rgba(0, 212, 255, 0.08);
+  --bg-primary: #040608;
+  --bg-secondary: #080a0f;
+  --bg-card: rgba(12, 16, 24, 0.7);
+  --bg-card-hover: rgba(20, 28, 40, 0.85);
+  --glass: rgba(6, 10, 16, 0.9);
+  --glass-border: rgba(0, 212, 255, 0.1);
 
   --accent: #00a8cc;       /* Muted Cyan */
   --accent-dim: rgba(0, 168, 204, 0.1);

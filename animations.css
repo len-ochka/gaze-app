@@ -81,8 +81,19 @@
 }
 
 /* ── 7. УДАЛЕНИЕ СТАРЫХ ЭФФЕКТОВ ── */
-body::before, .app-wrapper::after, .auth-bg-orb, .scan-ping, #scanning-radar, .viewfinder-corner, .rec-badge, .motion-alert, .digit-flicker {
+body::before, .app-wrapper::after, .auth-bg-orb, .rec-badge, .motion-alert, .digit-flicker {
   display: none !important;
+}
+
+/* ── 8. STICKER ZOOM ── */
+.guide-item-zoom {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: inline-block;
+}
+
+.guide-item:hover .guide-item-zoom,
+.guide-item:active .guide-item-zoom {
+  transform: scale(1.4) rotate(5deg);
 }
 
 /* ── 8. СТАТИЧНАЯ СМЕТА (ИНВОЙС) ── */
