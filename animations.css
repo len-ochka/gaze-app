@@ -89,6 +89,7 @@ body::before, .app-wrapper::after, .auth-bg-orb, .rec-badge, .motion-alert, .dig
 }
 
 /* ── 8. СТАТИЧНАЯ СМЕТА (ИНВОЙС) ── */
+
 .invoice-row {
   display: flex;
   align-items: flex-start;
@@ -98,9 +99,11 @@ body::before, .app-wrapper::after, .auth-bg-orb, .rec-badge, .motion-alert, .dig
   gap: 10px;
   animation: invoiceRow 0.4s ease both;
 }
-
+.invoice-row:last-child { border-bottom: none; }
 @keyframes invoiceRow {
   from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
   to { opacity: 1; transform: translateY(0); }
 }
 

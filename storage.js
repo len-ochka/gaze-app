@@ -26,8 +26,8 @@ const StorageService = (() => {
       'x-tg-init-data': initData
     };
 
-    // Добавляем Content-Type только когда это не GET и есть тело запроса
-    if (method !== 'GET' && body !== null) {
+    // Добавляем Content-Type только если есть тело запроса
+    if (body !== null || method !== 'GET') {
       headers['Content-Type'] = 'application/json';
     }
 
@@ -111,21 +111,6 @@ const StorageService = (() => {
             console.log('[StorageService] Используются кэшированные данные пользователя.');
             return cachedUser;
           }
-          const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-          if (tgUser) {
-            console.log('[StorageService] Используются данные напрямую из Telegram.');
-            const fallbackUser = {
-              id: null,
-              tg_id: tgUser.id,
-              username: tgUser.username,
-              full_name: [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' '),
-              role: 'user',
-              order_count: 0,
-              is_fallback: true
-            };
-            set('user', fallbackUser);
-            return fallbackUser;
-          }
           throw e;
         }
 
@@ -140,17 +125,10 @@ const StorageService = (() => {
    * Updates user profile data.
    */
   async function updateUserProfile(profile) {
+    await apiRequest('/user/profile', 'PUT', profile);
     const currentUser = get('user') || {};
     const updatedUser = { ...currentUser, ...profile };
-    set('user', updatedUser); // Optimistic local update
-
-    try {
-      await apiRequest('/user/profile', 'PUT', profile);
-    } catch (e) {
-      console.error('[StorageService] Failed to sync profile to server:', e);
-      // We keep the local version but the user is notified by the caller
-      throw e;
-    }
+    set('user', updatedUser);
     return updatedUser;
   }
 
@@ -232,6 +210,7 @@ const StorageService = (() => {
   async function getOrderHistory() { return await apiRequest('/orders/history'); }
 
   async function generateReferralCode(userId) {
+    if (!userId || userId === 0) return null;
     if (!userId || userId === 0) return null;
     const existing = get('referral_code');
     if (existing) return { code: existing };

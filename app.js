@@ -2,54 +2,54 @@
 
 // ─── ПРАЙС-ЛИСТ ───────────────────────────────────────────────────────────────
 const PRICES = {
-  // Камеры (HiWatch / Hikvision Market 2026)
-  cam_budget:    2400,   // OEM 2МП
-  cam_standard:  4800,   // HiWatch 2МП IP
-  cam_premium:   12500,  // Hikvision 4K AcuSense
+  // Камеры
+  cam_budget:    1490,   // Бюджетная камера 1МП
+  cam_standard:  2900,   // Стандартная 2МП
+  cam_premium:   5900,   // Премиум 4K/8МП
 
   // Регистраторы
-  dvr_budget_4:  6900,
-  dvr_budget_8:  9800,
-  dvr_standard_4: 12500,
-  dvr_standard_8: 18900,
-  dvr_standard_16: 32000,
-  dvr_premium_4:  24000,
-  dvr_premium_8:  38000,
-  dvr_premium_16: 55000,
+  dvr_budget_4:  4900,
+  dvr_budget_8:  7900,
+  dvr_standard_4: 8500,
+  dvr_standard_8: 14900,
+  dvr_standard_16: 24900,
+  dvr_premium_4:  14900,
+  dvr_premium_8:  24900,
+  dvr_premium_16: 39900,
 
-  // Кабель за метр (UTP Cat5e / Cat6)
-  cable_budget:   45,
-  cable_standard: 65,
-  cable_premium:  110,
+  // Кабель за метр
+  cable_budget:   18,    // UTP Cat5e
+  cable_standard: 28,    // UTP Cat5e экранированный
+  cable_premium:  55,    // Коаксиал RG59 + питание
 
   // PoE коммутаторы
-  poe_budget_4:   3500,
-  poe_budget_8:   5800,
-  poe_standard_4: 6500,
-  poe_standard_8: 9800,
-  poe_premium_4:  12000,
-  poe_premium_8:  18500,
-  poe_premium_16: 28000,
+  poe_budget_4:   1900,
+  poe_budget_8:   3200,
+  poe_standard_4: 3200,
+  poe_standard_8: 5900,
+  poe_premium_4:  5900,
+  poe_premium_8:  9800,
+  poe_premium_16: 16900,
 
-  // HDD (WD Purple / SkyHawk)
-  hdd_budget:  4500,   // 1ТБ
-  hdd_standard: 7200,  // 2ТБ
-  hdd_premium: 12500,  // 4ТБ
+  // HDD
+  hdd_budget:  2500,   // 1ТБ
+  hdd_standard: 3500,  // 2ТБ
+  hdd_premium: 6500,   // 4ТБ
 
   // Монтаж (за точку) - Московские цены 2026
-  install_budget:   3500,
-  install_standard: 5000,
-  install_premium:  7500,
+  install_budget:   2500,   // Базовый (внутренние)
+  install_standard: 3500,   // Стандартный (уличные до 3м)
+  install_premium:  4500,   // Высотный/Сложный (>3м)
 
-  install_nvr: 5000,
-  setup_remote: 2500,
+  install_nvr: 3000,        // Монтаж и настройка NVR
+  setup_remote: 1500,       // Удаленный доступ
 
   // Дополнительно
-  cable_work: 150,
-  mic: 2200,
-  courier: 1500,
-  maintenance: 3500,
-  router_4g: 8500
+  cable_work: 100,          // Прокладка кабеля за метр
+  mic: 1200,
+  courier: 1000,
+  maintenance: 2500,  // Ежемесячное ТО
+  router_4g: 6500
 };
 
 // ─── ПАКЕТЫ ───────────────────────────────────────────────────────────────────
@@ -102,7 +102,6 @@ const state = {
     soundRecord: false,
     motionDetect: false,
     hasInternet: false,
-    selectedOperator: null,
     maintenance: false,
     archiveDays: 14,
     result: null
@@ -111,145 +110,39 @@ const state = {
   delivery: 'courier'
 };
 
-// ─── EQUIPMENT CATALOG ────────────────────────────────────────────────────────
-const RF_OPERATORS = [
-  { id: 'rostelecom', name: 'Ростелеком', logo: '🔴', speeds: ['100 Мбит/с', '300 Мбит/с', '500 Мбит/с'], avgPrice: 500 },
-  { id: 'mts', name: 'МТС', logo: '🔴', speeds: ['100 Мбит/с', '200 Мбит/с'], avgPrice: 450 },
-  { id: 'beeline', name: 'Билайн', logo: '🟡', speeds: ['100 Мбит/с', '500 Мбит/с'], avgPrice: 500 },
-  { id: 'megafon', name: 'МегаФон', logo: '🟢', speeds: ['100 Мбит/с', '300 Мбит/с'], avgPrice: 480 },
-  { id: 'dom_ru', name: 'Дом.ru', logo: '🟠', speeds: ['100 Мбит/с', '200 Мбит/с', '1 Гбит/с'], avgPrice: 400 },
-  { id: 'ttk', name: 'ТТК', logo: '🔵', speeds: ['100 Мбит/с', '300 Мбит/с'], avgPrice: 430 },
-  { id: '4g', name: '4G-роутер (резерв)', logo: '📡', speeds: ['до 50 Мбит/с'], avgPrice: 6500, oneTime: true },
-  { id: 'no_internet', name: 'Без интернета', logo: '🚫', speeds: [], avgPrice: 0 },
-];
-
-function renderOperators() {
-  const list = document.getElementById('operators-list');
-  if (!list) return;
-  list.innerHTML = RF_OPERATORS.map(op => `
-    <div class="checkbox-row ${state.calc.selectedOperator === op.id ? 'checked' : ''}"
-         onclick="selectOperator('${op.id}')" style="padding:10px 14px;">
-      <span style="font-size:18px;">${op.logo}</span>
-      <div style="flex:1;">
-        <div style="font-size:14px;font-weight:600;">${op.name}</div>
-        ${op.speeds.length ? `<div style="font-size:11px;color:var(--text-muted);">${op.speeds.join(' / ')}</div>` : ''}
-      </div>
-      ${op.oneTime ? `<span style="font-size:11px;color:var(--accent);white-space:nowrap;">+${fmt(op.avgPrice)} разово</span>` :
-        op.avgPrice > 0 ? `<span style="font-size:11px;color:var(--text-secondary);white-space:nowrap;">~${op.avgPrice} ₽/мес</span>` : ''}
-    </div>
-  `).join('');
-}
-
-function selectOperator(id) {
-  state.calc.selectedOperator = id;
-  renderOperators();
-  haptic('light');
-  if (typeof recalcPrice === 'function') recalcPrice();
-  else buildAndShowResult();
-}
-
-const EQUIPMENT_CATALOG = {
-  cameras: [
-    { id: 'cam_b1', name: 'Hikvision DS-2CD1143G2-I', spec: '4МП, ИК 40м, IP67, PoE', price: 2900, type: 'outdoor' },
-    { id: 'cam_b2', name: 'Dahua IPC-HDW2849H-S-IL', spec: '8МП 4K, ИК+белый свет, IP67', price: 5900, type: 'outdoor' },
-    { id: 'cam_b3', name: 'Hikvision DS-2CD2T47G2-L', spec: '4МП ColorVu, ночь в цвете, ИК 60м', price: 4500, type: 'outdoor' },
-    { id: 'cam_b4', name: 'Dahua IPC-HDW3849H-ZAS-PV', spec: '8МП, вариофокал, цвет ночью', price: 7900, type: 'outdoor' },
-    { id: 'cam_i1', name: 'Hikvision DS-2CD2143G2-I', spec: '4МП, купол, ИК 40м, PoE', price: 2500, type: 'indoor' },
-    { id: 'cam_i2', name: 'Dahua IPC-HDW2831T-AS', spec: '8МП 4K, купол, встр. микрофон', price: 3900, type: 'indoor' },
-    { id: 'cam_p1', name: 'Hikvision DS-2DE4425IWG-E', spec: '4МП PTZ, авто-слежение, ИК 100м', price: 18900, type: 'ptz' },
-  ],
-  dvr: [
-    { id: 'nvr_4', name: 'Hikvision DS-7604NI-K1/4P', spec: '4 канала PoE, до 8МП, H.265+', price: 8500 },
-    { id: 'nvr_8', name: 'Hikvision DS-7608NI-K2/8P', spec: '8 каналов PoE, до 8МП, H.265+', price: 14900 },
-    { id: 'nvr_16', name: 'Hikvision DS-7616NI-K2/16P', spec: '16 каналов PoE, до 8МП', price: 24900 },
-    { id: 'nvr_32', name: 'Dahua NVR4232-16P-4KS2/L', spec: '32 канала, 16xPoE, RAID', price: 42000 },
-  ],
-  hdd: [
-    { id: 'hdd_1', name: 'WD Purple 1TB', spec: 'WD10PURZ, 24/7, ~7 дней архива', price: 3200 },
-    { id: 'hdd_2', name: 'WD Purple 2TB', spec: 'WD23PURZ, 24/7, ~14 дней архива', price: 5500 },
-    { id: 'hdd_4', name: 'WD Purple 4TB', spec: 'WD43PURZ, 24/7, ~30 дней архива', price: 8900 },
-    { id: 'hdd_6', name: 'Seagate SkyHawk 6TB', spec: 'ST6000VX001, 24/7, ~45 дней архива', price: 13500 },
-    { id: 'hdd_8', name: 'Seagate SkyHawk 8TB', spec: 'ST8000VX004, 24/7, ~60 дней архива', price: 17900 },
-  ]
-};
-
-const proState = { camera: null, cameraQty: 1, dvr: null, hdd: null };
-
-function renderProMode() {
-  function makeItem(item, type, selected) {
-    const div = document.createElement('div');
-    div.className = `pro-item-card ${selected ? 'selected' : ''}`;
-    div.innerHTML = `
-      <div class="pro-item-info">
-        <div class="pro-item-name">${item.name}</div>
-        <div class="pro-item-spec">${item.spec}</div>
-        ${type === 'camera' && selected ? `
-          <div class="pro-qty-picker" onclick="event.stopPropagation()">
-            <button class="pro-qty-btn" onclick="proState.cameraQty=Math.max(1,proState.cameraQty-1);updateProTotal();renderProMode();">−</button>
-            <span class="pro-qty-val">${proState.cameraQty}</span>
-            <button class="pro-qty-btn" onclick="proState.cameraQty++;updateProTotal();renderProMode();">+</button>
-          </div>
-        ` : ''}
-      </div>
-      <div class="pro-item-price">${fmt(item.price)}</div>
-    `;
-    div.onclick = () => {
-      proState[type] = selected ? null : item;
-      renderProMode();
-      updateProTotal();
-      haptic('light');
-    };
-    return div;
-  }
-
-  const containers = {
-    camera: document.getElementById('pro-cameras-list'),
-    dvr: document.getElementById('pro-dvr-list'),
-    hdd: document.getElementById('pro-hdd-list')
-  };
-
-  if (!containers.camera) return;
-
-  // Render by categories
-  containers.camera.innerHTML = '';
-  EQUIPMENT_CATALOG.cameras.forEach(c => containers.camera.appendChild(makeItem(c, 'camera', proState.camera?.id === c.id)));
-
-  containers.dvr.innerHTML = '';
-  EQUIPMENT_CATALOG.dvr.forEach(d => containers.dvr.appendChild(makeItem(d, 'dvr', proState.dvr?.id === d.id)));
-
-  containers.hdd.innerHTML = '';
-  EQUIPMENT_CATALOG.hdd.forEach(h => containers.hdd.appendChild(makeItem(h, 'hdd', proState.hdd?.id === h.id)));
-}
-
-function updateProTotal() {
-  const qtyEl = document.getElementById('pro-cam-qty');
-  if (qtyEl) qtyEl.textContent = proState.cameraQty;
-  const cam = proState.camera ? proState.camera.price * proState.cameraQty : 0;
-  const dvr = proState.dvr ? proState.dvr.price : 0;
-  const hdd = proState.hdd ? proState.hdd.price : 0;
-  const total = cam + dvr + hdd;
-  const el = document.getElementById('pro-total-price');
-  if (el) el.textContent = fmt(total);
-}
-
 // ─── УТИЛИТЫ ──────────────────────────────────────────────────────────────────
-function renderConnBadge() {
-  const el = document.getElementById('conn-status');
+let _isOnline = true;
+async function updateConnStatus() {
+  const el = $('conn-status');
   if (!el) return;
-  if (state.user?.isGuest) {
-    el.style.background = 'rgba(255,165,0,0.12)';
-    el.style.color = '#ffaa00';
-    el.style.borderColor = 'rgba(255,165,0,0.3)';
-    el.innerHTML = '<span>👤 Войти в Telegram</span>';
-    el.onclick = () => performAuth();
-  } else if (state.user) {
-    el.style.background = 'rgba(0,255,148,0.1)';
-    el.style.color = 'var(--accent-2)';
-    el.style.borderColor = 'rgba(0,255,148,0.2)';
-    el.innerHTML = '<span>✓ @' + (state.user.username || state.user.full_name) + '</span>';
-    el.onclick = null;
+
+  try {
+    const start = Date.now();
+    const res = await fetch(StorageService.API_URL.replace('/api', '/api/health'), { method: 'GET', cache: 'no-cache' });
+    const duration = Date.now() - start;
+
+    if (res.ok) {
+       _isOnline = true;
+       el.style.background = 'rgba(0,255,148,0.1)';
+       el.style.color = 'var(--accent-2)';
+       el.style.borderColor = 'rgba(0,255,148,0.2)';
+       el.querySelector('span').textContent = `ONLINE (${duration}ms)`;
+    } else {
+       throw new Error();
+    }
+  } catch (e) {
+    _isOnline = false;
+    el.style.background = 'rgba(255,74,107,0.1)';
+    el.style.color = '#ff4a6b';
+    el.style.borderColor = 'rgba(255,74,107,0.2)';
+    el.querySelector('span').textContent = 'OFFLINE';
   }
 }
+
+// Пинг каждые 30 секунд
+setInterval(updateConnStatus, 30000);
+window.addEventListener('online', updateConnStatus);
+window.addEventListener('offline', updateConnStatus);
 
 function fmt(n) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
@@ -327,9 +220,8 @@ function calcCamerasForArea(area, type) {
 }
 
 function calcCableForArea(area, camCount, type) {
-  const diagonal = Math.sqrt(2) * Math.sqrt(area);
-  const perCamLength = (diagonal * 0.45 + 3) * 1.15;
-  return Math.ceil(perCamLength * camCount);
+  const avgDist = Math.ceil(Math.sqrt(area) / 2 * 1.3);
+  return avgDist * camCount + 10;
 }
 
 function getDvrKey(pkg, count) {
@@ -363,25 +255,7 @@ function buildSpec(pkg, area, camType, opts) {
   const hddTotal = PRICES[hddKey];
 
   const micTotal = opts.soundRecord ? PRICES.mic * (camCount <= 4 ? 1 : 2) : 0;
-
-  let internetTotal = 0;
-  let internetName = '4G-Интернет комплект';
-  let internetSpec = 'Роутер + антенна + SIM';
-
-  if (opts.hasInternet) {
-    const op = RF_OPERATORS.find(o => o.id === state.calc.selectedOperator);
-    if (op) {
-      internetName = op.name;
-      if (op.oneTime) {
-        internetTotal = op.avgPrice;
-        internetSpec = 'Оборудование и установка';
-      } else {
-        internetSpec = op.speeds.length ? `Тариф: ${op.speeds.join(' / ')}` : 'Подключение';
-      }
-    } else {
-      internetTotal = PRICES.router_4g || 6500;
-    }
-  }
+  const internetTotal = opts.hasInternet ? (PRICES.router_4g || 6500) : 0;
 
   // Расчет стоимости работ with Moscow rates & margin
   const baseInstall = PRICES[pkg.install] * camCount;
@@ -404,7 +278,7 @@ function buildSpec(pkg, area, camType, opts) {
     { name: 'HDD для видеонаблюдения', spec: `Ёмкость под архив ${opts.archiveDays} дн.`, price: hddTotal, qty: 1, icon: '💾' },
   ];
   if (opts.soundRecord) items.push({ name: 'Микрофон всенаправленный', spec: 'до 10м, шумоподавление', price: micTotal, qty: camCount <= 4 ? 1 : 2, icon: '🎤' });
-  if (opts.hasInternet) items.push({ name: internetName, spec: internetSpec, price: internetTotal, qty: 1, icon: '🌐' });
+  if (opts.hasInternet) items.push({ name: '4G-Интернет комплект', spec: 'Роутер + антенна + SIM', price: internetTotal, qty: 1, icon: '🌐' });
   if (opts.maintenance) items.push({ name: 'Техническое обслуживание', spec: 'Ежемесячный выезд, чистка, проверка дисков', price: PRICES.maintenance, qty: 1, icon: '🛠️' });
   items.push({ name: 'Монтаж и настройка системы', spec: camCount + ' точек + NVR + кабель', price: laborTotal, qty: 1, icon: '🔧' });
 
@@ -421,28 +295,10 @@ function buildSpec(pkg, area, camType, opts) {
 
 // ─── ОФОРМЛЕНИЕ ЗАКАЗА ────────────────────────────────────────────────────────
 async function doOrder() {
-  if (!state.user || state.user.isGuest) {
-    toast('Войдите через Telegram для оформления заказа', 'error');
-    setTimeout(() => performAuth(), 1500);
-    return;
-  }
-
-  const phone = state.user.phone || '';
-  const email = state.user.email || '';
-
-  // Строгая валидация RU номера
-  const cleanPhone = phone.replace(/\D/g, '');
-  if (!/^(7|8)9\d{9}$/.test(cleanPhone)) {
+  if (!state.user) { toast('Войдите в аккаунт', 'error'); return; }
+  if (!state.user.phone) {
     haptic('error');
-    toast('Некорректный номер телефона в профиле', 'error');
-    setTimeout(() => showScreen('profile'), 1500);
-    return;
-  }
-
-  // Валидация почты если она указана
-  if (email && !isEmail(email)) {
-    haptic('error');
-    toast('Некорректный Email в профиле', 'error');
+    toast('Укажите телефон в профиле для связи', 'error');
     setTimeout(() => showScreen('profile'), 1500);
     return;
   }
@@ -505,7 +361,7 @@ let myMap;
 let selectedAddress = '';
 
 function openFullMap() {
-  const modal = $('full-map-view');
+  const modal = $("full-map-view");
   if (modal) modal.style.display = 'block';
   haptic('light');
 
@@ -520,7 +376,7 @@ function openFullMap() {
 }
 
 function initYandexMap() {
-  const currentAddr = $('edit-address')?.value;
+  const currentAddr = $("edit-address")?.value;
   window.ymaps.ready(() => {
     if (!myMap) {
       myMap = new ymaps.Map("big-map", {
@@ -561,34 +417,23 @@ function initYandexMap() {
 
 function updateMapMarker(coords, address) {
     myMap.geoObjects.removeAll();
-    const placemark = new ymaps.Placemark(coords, {
-      iconCaption: address || 'Загрузка...'
-    }, {
-      preset: 'islands#dotIcon',
-      iconColor: '#00d4ff',
-      draggable: true
-    });
-
-    placemark.events.add('dragend', function(e) {
-      const newCoords = placemark.geometry.getCoordinates();
-      getAddress(newCoords);
-    });
-
+    const placemark = new ymaps.Placemark(coords, { iconCaption: 'Загрузка...' }, { preset: 'islands#blueDotIconWithCaption' });
     myMap.geoObjects.add(placemark);
 
-    selectedAddress = address || (coords[0].toFixed(6) + ', ' + coords[1].toFixed(6));
-    if ($('map-selection-info')) $('map-selection-info').textContent = selectedAddress;
+    selectedAddress = address;
+    placemark.properties.set('iconCaption', address);
+    if ($('map-selection-info')) $('map-selection-info').textContent = address;
 
     const input = $('edit-address');
     if (input) {
-        input.value = address || '';
+        input.value = address;
         input.classList.remove('error');
     }
 
     const confirmBtn = $('btn-map-confirm');
     if (confirmBtn) {
         confirmBtn.disabled = false;
-        confirmBtn.innerHTML = 'Подтвердить выбор';
+        confirmBtn.innerHTML = 'Подтвердить';
     }
 }
 
@@ -602,15 +447,6 @@ function getAddress(coords) {
       confirmBtn.innerHTML = '<span class="spinner"></span>';
   }
 
-  if (typeof ymaps === 'undefined' || !ymaps.geocode) {
-    toast('API Яндекс.Карт недоступно', 'error');
-    if (confirmBtn) {
-      confirmBtn.disabled = false;
-      confirmBtn.innerHTML = 'Подтвердить выбор';
-    }
-    return;
-  }
-
   // Пробуем найти ближайший дом
   ymaps.geocode(coords, { kind: 'house', results: 1 }).then(function (res) {
     let obj = res.geoObjects.get(0);
@@ -621,7 +457,8 @@ function getAddress(coords) {
         obj = res2.geoObjects.get(0);
         if (obj) updateMapMarker(coords, obj.getAddressLine());
         else {
-          updateMapMarker(coords, null);
+          selectedAddress = '';
+          if ($('map-selection-info')) $('map-selection-info').textContent = 'Адрес не найден';
         }
       });
     }
@@ -630,22 +467,22 @@ function getAddress(coords) {
   }).catch(err => {
     console.error('Geocoding error:', err);
     toast('Ошибка геокодирования', 'error');
-  }).finally(() => {
-    if (confirmBtn) {
-      confirmBtn.disabled = false;
-      confirmBtn.innerHTML = 'Подтвердить выбор';
-    }
   });
 }
 
 async function validateManualAddress(addr) {
-  if (!addr || addr.trim().length < 5) return true; // allow empty, validated elsewhere
-  if (!window.ymaps) return true; // ymaps not loaded, skip validation
+  if (!addr || addr.length < 5) return false;
+  if (!window.ymaps) return true; // Fail-safe
   try {
     const res = await ymaps.geocode(addr);
-    return res.geoObjects.getLength() > 0;
+    const obj = res.geoObjects.get(0);
+    if (!obj) return false;
+    // Если объект найден и это хотя бы улица или здание - считаем валидным
+    const meta = obj.properties.get('metaDataProperty.GeocoderMetaData');
+    const kind = meta.kind;
+    return ['house', 'street', 'district', 'locality'].includes(kind);
   } catch (e) {
-    return true; // network error — allow save
+    return true; // В случае ошибки API не блокируем пользователя
   }
 }
 
@@ -838,28 +675,6 @@ function bindSupport() {
   });
 }
 
-function showCenterModal(title, text, buttons) {
-  const existing = document.getElementById('center-modal');
-  if (existing) existing.remove();
-  const overlay = document.createElement('div');
-  overlay.id = 'center-modal';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px);';
-  const box = document.createElement('div');
-  box.style.cssText = 'background:#0d1420;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px;max-width:340px;width:100%;text-align:center;';
-  box.innerHTML = `<div style="font-size:18px;font-weight:700;margin-bottom:10px;">${title}</div><div style="font-size:14px;color:#94a3b8;line-height:1.5;margin-bottom:20px;">${text}</div>`;
-  buttons.forEach(btn => {
-    const b = document.createElement('button');
-    b.className = btn.primary ? 'btn btn-primary' : 'btn btn-secondary';
-    b.style.marginBottom = '10px';
-    b.textContent = btn.label;
-    b.onclick = () => { overlay.remove(); if (btn.action) btn.action(); };
-    box.appendChild(b);
-  });
-  overlay.appendChild(box);
-  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
-  document.body.appendChild(overlay);
-}
-
 // ─── ИНИЦИАЛИЗАЦИЯ ────────────────────────────────────────────────────────────
 async function init() {
   TelegramService.ready();
@@ -879,40 +694,6 @@ async function init() {
     haptic('medium');
     performAuth();
   });
-
-  // Listen for guest login button
-  $('btn-guest-enter')?.addEventListener('click', () => {
-    haptic('medium');
-    enterAsGuest();
-  });
-
-  $('btn-guest-link-tg')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    haptic('medium');
-    performAuth();
-  });
-}
-
-/**
- * Вход в режиме гостя (без Telegram авторизации).
- */
-function enterAsGuest() {
-  const guestUser = {
-    id: 0,
-    tg_id: 0,
-    username: 'guest',
-    full_name: 'Гость',
-    role: 'user',
-    isGuest: true
-  };
-
-  state.user = guestUser;
-  state.orderCount = 0;
-  StorageService.set('user', guestUser);
-  renderConnBadge();
-
-  toast('Вход выполнен в гостевом режиме');
-  setTimeout(() => showScreen('home'), 500);
 }
 
 /**
@@ -939,23 +720,27 @@ async function performAuth() {
   }
   if (retryBtn) retryBtn.style.display = 'none';
 
+  // Расширяем приложение на весь экран
   TelegramService.expand();
 
-  // Резервный таймер UI
+  // Резервный таймер UI для предотвращения "бесконечного" ожидания пользователем
   const uiFallbackTimer = setTimeout(() => {
     if (state.screen === 'auth' && retryBtn) {
       retryBtn.style.display = 'block';
-      if (statusEl) statusEl.textContent = 'СЕТЬ ЗАМЕДЛЕНА...';
+      if (statusEl) {
+        statusEl.textContent = 'СОЕДИНЕНИЕ УСТАНАВЛИВАЕТСЯ...';
+      }
     }
-  }, 5000);
+  }, 7000);
 
   try {
-    // Механизм привязки гостя к Telegram
-    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
-
-    // Попытка синхронизации с сервером
+    // 1. Попытка синхронизации с сервером (внутри storage.js 4 попытки с задержкой)
     const syncResult = await StorageService.syncUser(4).catch(err => {
-        if (err.status === 401 || err.status === 403) StorageService.clearSession();
+        // Если это ошибка авторизации (401/403), пробуем обновить данные из TG
+        if (err.status === 401 || err.status === 403) {
+            console.log('[App] Auth error, clearing cache and retrying...');
+            StorageService.clearSession();
+        }
         throw err;
     });
 
@@ -964,49 +749,46 @@ async function performAuth() {
     if (syncResult) {
       state.user = syncResult;
       state.orderCount = StorageService.getOrderCount();
-      renderConnBadge();
 
+      // Настройка прав доступа и интерфейса
       if (state.user?.role === 'admin') $('nav-admin').style.display = 'flex';
       if (state.orderCount > 0) $('nav-support').style.display = 'flex';
 
-      if (!state.user.isGuest && !state.user.referral_code) {
-        StorageService.generateReferralCode(state.user.tg_id).then(r => {
-          if (r?.code) state.referralCode = r.code;
-        }).catch(() => {});
-      } else if (!state.user.isGuest) {
-        state.referralCode = state.user.referral_code;
-      }
-
+      // 2. Фоновое обновление цен (не блокирует вход)
       StorageService.getPrices().then(remotePrices => {
         if (remotePrices) Object.assign(PRICES, remotePrices);
       }).catch(() => {});
 
+      // Успешный вход
       if (statusEl) statusEl.textContent = 'ГОТОВО';
       haptic('success');
-      setTimeout(() => showScreen('home'), 400);
+      setTimeout(() => showScreen('home'), 500);
     } else {
       throw new Error('AUTH_FAILED');
     }
   } catch (e) {
-    console.error('[App] Auth error:', e);
+    console.error('[App] Критическая ошибка авторизации:', e);
     clearTimeout(uiFallbackTimer);
 
-    // Обработка блокировок РФ (если Telegram API не отвечает)
-    if (e.message.includes('Failed to fetch') || e.name === 'AbortError') {
-       if (statusEl) statusEl.textContent = 'ОШИБКА СЕТИ (CORS/VPN?)';
-    } else {
-       if (statusEl) statusEl.textContent = 'ОШИБКА АВТОРИЗАЦИИ';
+    if (statusEl) {
+      statusEl.textContent = 'ОШИБКА СВЯЗИ';
+      statusEl.style.color = '#ff4d4d';
     }
-
     if (retryBtn) retryBtn.style.display = 'block';
 
+    // 3. Стратегия выживания: пробуем войти через локальный кэш
     const cachedUser = StorageService.getUser();
-    if (cachedUser && !cachedUser.isGuest) {
+    if (cachedUser) {
       state.user = cachedUser;
-      toast('Вход через кэш (офлайн)');
-      setTimeout(() => showScreen('home'), 1000);
+      state.orderCount = StorageService.getOrderCount();
+      toast('Вход выполнен в автономном режиме', 'warning');
+      setTimeout(() => showScreen('home'), 1500);
     } else {
       haptic('error');
+      // Если это не TWA и нет кэша - выводим подсказку
+      if (!window.Telegram?.WebApp?.initData) {
+        toast('Пожалуйста, откройте приложение в Telegram', 'error');
+      }
     }
   } finally {
     state.isAuthInProgress = false;
@@ -1044,6 +826,9 @@ function prepareNewScreen(name, el) {
   if (name !== 'support') {
     clearInterval(supportInterval);
   }
+  if (name !== 'support') {
+    clearInterval(supportInterval);
+  }
   el.classList.add('active');
   state.screen = name;
 
@@ -1069,17 +854,6 @@ function prepareNewScreen(name, el) {
   }
 
   $$('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.screen === name));
-
-  if (name === 'home' && state.user?.isGuest) {
-    setTimeout(() => {
-      showCenterModal(
-        '👋 Добро пожаловать!',
-        'Вы вошли как гость. Вы можете рассчитать стоимость и выбрать оборудование, но для оформления заказа необходимо войти через Telegram.',
-        [{ label: '🔗 Войти через Telegram', primary: true, action: performAuth },
-         { label: 'Остаться гостем', action: null }]
-      );
-    }, 800);
-  }
 
   // Инициализация логики экранов
   if (name === 'home') renderHome();
@@ -1184,15 +958,6 @@ function bindCalculator() {
       $$('.cam-type-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       state.calc.cameraType = card.dataset.type;
-
-      // Animation for selection
-      anime({
-        targets: card.querySelector('.card-icon svg'),
-        scale: [1, 1.2, 1],
-        rotate: '10deg',
-        duration: 400,
-        easing: 'easeOutBack'
-      });
     });
   });
 
@@ -1235,13 +1000,6 @@ function bindCalculator() {
       row.classList.toggle('checked');
       const key = row.dataset.option;
       if (key) state.calc[key] = row.classList.contains('checked');
-      if (key === 'hasInternet') {
-        const panel = document.getElementById('internet-operators-panel');
-        if (panel) {
-          panel.style.display = state.calc.hasInternet ? 'block' : 'none';
-          if (state.calc.hasInternet) renderOperators();
-        }
-      }
     });
   });
 
@@ -1256,79 +1014,12 @@ function bindCalculator() {
   $('btn-calc2-next')?.addEventListener('click', () => {
     haptic('medium');
     if (!state.calc.package) { toast('Выберите пакет', 'error'); return; }
-
-    // Show scanning animation
-    const overlay = $('scanning-overlay');
-    if (overlay) {
-      overlay.style.display = 'flex';
-      const progress = $('scanning-progress');
-      const text = $('scanning-text');
-      if (text) text.textContent = 'Формируем спецификацию...';
-      if (progress) anime({ targets: progress, width: '100%', duration: 1800, easing: 'easeInOutQuad' });
-      const phrases = ['Анализ площади...', 'Подбор оборудования...', 'Расчёт кабельной трассы...', 'Готово'];
-      let pIdx = 0;
-      const tInterval = setInterval(() => { pIdx++; if (text && pIdx < phrases.length) text.textContent = phrases[pIdx]; }, 500);
-      setTimeout(() => {
-        clearInterval(tInterval);
-        overlay.style.display = 'none';
-        buildAndShowResult();
-        renderCalcStep(3);
-        anime({ targets: '.invoice-row', opacity: [0,1], translateY: [10,0], delay: anime.stagger(60), duration: 400, easing: 'easeOutExpo' });
-      }, 2000);
-    } else {
-      buildAndShowResult();
-      renderCalcStep(3);
-    }
+    buildAndShowResult();
+    renderCalcStep(3);
   });
 
   $('btn-calc3-back')?.addEventListener('click', () => { haptic('light'); renderCalcStep(2); });
   $('btn-calc3-order')?.addEventListener('click', () => { haptic('success'); doOrder(); });
-
-  document.getElementById('btn-pro-mode')?.addEventListener('click', () => {
-    const panel = document.getElementById('pro-mode-panel');
-    if (!panel) return;
-    const isOpen = panel.style.display !== 'none';
-    panel.style.display = isOpen ? 'none' : 'block';
-    if (!isOpen) {
-      renderProMode();
-      updateProTotal();
-      // Initialize tab listeners if first time
-      if (!panel.dataset.tabsBound) {
-        panel.querySelectorAll('.pro-tab').forEach(tab => {
-          tab.addEventListener('click', () => {
-            panel.querySelectorAll('.pro-tab').forEach(t => t.classList.remove('active'));
-            panel.querySelectorAll('.pro-cat-pane').forEach(p => p.style.display = 'none');
-            tab.classList.add('active');
-            const cat = tab.dataset.proCat;
-            document.getElementById(`pro-cat-${cat}`).style.display = 'block';
-            haptic('selection');
-          });
-        });
-        panel.dataset.tabsBound = "true";
-      }
-    }
-    haptic('light');
-  });
-
-  document.getElementById('btn-pro-add-to-cart')?.addEventListener('click', () => {
-    if (!proState.camera && !proState.dvr && !proState.hdd) {
-      toast('Выберите хотя бы одну позицию', 'error'); return;
-    }
-    if (proState.camera) {
-      addToCart({ name: proState.camera.name, spec: proState.camera.spec, price: proState.camera.price, qty: proState.cameraQty, icon: '📷' });
-    }
-    if (proState.dvr) addToCart({ name: proState.dvr.name, spec: proState.dvr.spec, price: proState.dvr.price, qty: 1, icon: '📼' });
-    if (proState.hdd) addToCart({ name: proState.hdd.name, spec: proState.hdd.spec, price: proState.hdd.price, qty: 1, icon: '💾' });
-    document.getElementById('pro-mode-panel').style.display = 'none';
-    haptic('success');
-    toast('Добавлено в корзину', 'success');
-    showScreen('cart');
-  });
-}
-
-function addToCart(item) {
-  state.cart.push(item);
-  StorageService.set('cart', state.cart);
 }
 
 function renderPackagePreview(pkgId) {
@@ -1355,40 +1046,34 @@ function buildAndShowResult() {
   });
   state.calc.result = spec;
 
-  // Динамические иконки камер
-  const camIcon = state.calc.cameraType === 'indoor' ? '⚪' : '🔫'; // Купол vs Цилиндр (bullet)
-
   const container = $('result-items');
   if (container) {
-    container.innerHTML = spec.items.map(i => {
-      let icon = i.icon;
-      if (i.name.includes('камера')) icon = camIcon;
-
-      return `<div class="invoice-row animate-in">
-        <div style="display:flex; gap:12px;">
-          <span style="font-size:18px;">${icon}</span>
-          <div>
-            <div style="font-size:14px; font-weight:600;">${i.name}</div>
-            <div style="font-size:11px; color:var(--text-muted);">${i.spec}</div>
-          </div>
+    container.innerHTML = spec.items.map(i =>
+      `<div class="compat-card">
+        <div class="compat-card-icon" style="font-size:20px;background:none;">${i.icon}</div>
+        <div class="compat-card-body">
+          <div class="compat-card-name">${i.name}</div>
+          <div class="compat-card-spec">${i.spec}</div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:14px; font-weight:700;">${fmt(i.price)}</div>
-          <div style="font-size:10px; color:var(--text-secondary);">${i.qty} шт.</div>
+        <div class="compat-card-right">
+          <div class="compat-price">${fmt(i.price)}</div>
+          <div class="compat-qty">${i.qty} шт.</div>
         </div>
-      </div>`;
-    }).join('');
+      </div>`
+    ).join('');
   }
 
   const summary = $('result-summary');
   if (summary) {
     summary.innerHTML = `
-      <div class="invoice-total">
-        <div style="font-size:12px; color:var(--text-secondary); font-weight:400; margin-bottom:4px;">ИТОГО К ОПЛАТЕ</div>
-        <div>${fmt(spec.total)}</div>
-        ${state.orderCount >= 3 ? '<div style="font-size:10px; color:var(--accent); margin-top:4px;">Применена скидка VIP-клиента 5%</div>' : ''}
-      </div>
-    `;
+      <div class="total-row"><span class="total-label">📷 Камер</span><span class="total-value">${spec.camCount} шт.</span></div>
+      <div class="total-row"><span class="total-label">🔌 Кабель</span><span class="total-value">~${spec.cableM} м</span></div>
+      <div class="total-row"><span class="total-label">📦 Пакет</span><span class="total-value">${pkg.name}</span></div>
+      <div class="total-row"><span class="total-label">🔧 Работы</span><span class="total-value">${fmt(spec.laborTotal)}</span></div>
+      <div class="total-row total-final">
+        <span class="total-label">💰 ИТОГО</span>
+        <span class="total-value">${fmt(spec.total)}${state.orderCount >= 3 ? ' <span style="font-size:12px;color:var(--accent);">(VIP -5%)</span>' : ''}</span>
+      </div>`;
   }
 }
 
@@ -1433,50 +1118,10 @@ function renderProfile() {
       editPhone.value = u.phone || '';
       applyPhoneMask(editPhone);
   }
-  const editEmail = $('edit-email'); if (editEmail) editEmail.value = u.email || '';
   const editAddr = $('edit-address'); if (editAddr) editAddr.value = u.address || '';
 
-  const guestBanner = document.getElementById('guest-banner');
-  if (guestBanner) guestBanner.style.display = state.user?.isGuest ? 'block' : 'none';
-
-  const navSupport = document.getElementById('nav-support');
-  if (navSupport) navSupport.style.display = state.orderCount > 0 ? 'flex' : 'none';
-
-  const chatWrap = document.getElementById('chat-engineer-btn-wrap');
-  if (chatWrap) chatWrap.style.display = state.orderCount > 0 ? 'block' : 'none';
-
   StorageService.getReferralData().then(data => {
-    if (!data) {
-      // Fallback referral code if server fails
-      if (!state.referralCode) {
-        state.referralCode = 'GZ' + Math.random().toString(36).substring(2, 8).toUpperCase();
-      }
-      const refCode = document.getElementById('ref-code-display');
-      if (refCode) refCode.textContent = state.referralCode;
-      return;
-    }
-    const refBonus = document.getElementById('ref-bonus-display');
-    const refCode = document.getElementById('ref-code-display');
-    if (refBonus) refBonus.textContent = fmt(data.balance || 0);
-
-    const code = data.code || 'GZ' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    if (refCode) refCode.textContent = code;
-    state.referralCode = code;
-
-    // Show invites if any
-    if (data.invites?.length > 0) {
-      const section = document.getElementById('ref-invites-section');
-      const list = document.getElementById('ref-invites-list');
-      if (section) section.style.display = 'block';
-      if (list) {
-        list.innerHTML = data.invites.map((inv, idx) =>
-          `<div class="invite-pill" style="animation-delay: ${idx * 0.1}s">
-            <span style="color:var(--text-primary); font-weight:600;">${inv.full_name}</span>
-            <span style="color:var(--accent-2); font-size:10px;">АКТИВЕН</span>
-          </div>`
-        ).join('');
-      }
-    }
+    if (data) { $('ref-bonus-display').textContent = fmt(data.balance); state.referralCode = data.code; }
   }).catch(() => {});
 
   StorageService.getOrderHistory().then(orders => {
@@ -1502,6 +1147,8 @@ function renderProfile() {
 }
 
 function applyPhoneMask(input) {
+  if (input.dataset.maskBound) return;
+  input.dataset.maskBound = 'true';
   if (input.dataset.maskBound) return;
   input.dataset.maskBound = 'true';
   const onInput = (e) => {
@@ -1543,16 +1190,6 @@ function applyPhoneMask(input) {
 }
 
 function bindProfile() {
-  document.getElementById('btn-link-telegram')?.addEventListener('click', () => performAuth());
-
-  document.getElementById('btn-copy-ref-code')?.addEventListener('click', () => {
-    if (!state.referralCode) return;
-    const botUser = 'gaze_video_bot';
-    const link = `https://t.me/${botUser}/app?startapp=${state.referralCode}`;
-    navigator.clipboard?.writeText(link).then(() => toast('Ссылка скопирована!', 'success')).catch(() => toast(link, 'success'));
-    haptic('medium');
-  });
-
   $('btn-share-ref')?.addEventListener('click', () => {
     haptic('medium'); if (!state.referralCode) return;
     const botUser = 'gaze_video_bot';
@@ -1564,15 +1201,6 @@ function bindProfile() {
     }
   });
 
-  document.getElementById('btn-share-ref-tg')?.addEventListener('click', () => {
-    if (!state.referralCode) return;
-    const botUser = 'gaze_video_bot';
-    const link = `https://t.me/${botUser}/app?startapp=${state.referralCode}`;
-    const text = encodeURIComponent(`🎥 Установи GAZE — профессиональный подбор систем видеонаблюдения! ${link}`);
-    window.Telegram?.WebApp?.openTelegramLink?.(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`);
-    haptic('medium');
-  });
-
   $('btn-edit-profile')?.addEventListener('click', () => {
     haptic();
     $('profile-main-view').style.display = 'none';
@@ -1582,16 +1210,11 @@ function bindProfile() {
     haptic(); $('profile-main-view').style.display = ''; $('profile-edit-view').style.display = 'none';
   });
   $('btn-save-profile')?.addEventListener('click', async () => {
-    if (state.user?.isGuest) {
-      toast('Для сохранения профиля войдите через Telegram', 'error');
-      return;
-    }
     haptic('medium');
     clearErr(['edit-name', 'edit-phone', 'edit-address']);
 
     const name = $('edit-name')?.value.trim();
     const phone = $('edit-phone')?.value.trim();
-    const email = $('edit-email')?.value.trim();
     const address = $('edit-address')?.value.trim();
 
     if (name?.length < 2) {
@@ -1608,10 +1231,10 @@ function bindProfile() {
 
     // Валидация адреса
     setLoading($('btn-save-profile'), true);
-    // Пропускаем жесткую валидацию ymaps если есть риск 405/сетевых ошибок, но проверяем длину
-    if (address.length > 0 && address.length < 5) {
+    const isAddrValid = await validateManualAddress(address);
+    if (!isAddrValid) {
         setLoading($('btn-save-profile'), false);
-        fieldErr('edit-address', 'Введите более подробный адрес');
+        fieldErr('edit-address', 'Такого адреса не существует, проверьте правильность ввода');
         return;
     }
 
@@ -1619,7 +1242,7 @@ function bindProfile() {
       full_name: name,
       phone: phone,
       address: address,
-      email: email
+      email: state.user.email
     };
 
     try {
