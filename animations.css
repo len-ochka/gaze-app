@@ -71,28 +71,20 @@
   left: 100%;
 }
 
-/* ── 6. ИНТЕРАКТИВНЫЙ ГАЙД (STICKER ZOOM) ── */
-.guide-item-zoom {
-  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.guide-item-active .guide-item-zoom {
-  transform: scale(1.2) translateY(-10px);
-}
-
-/* ── 7. УДАЛЕНИЕ СТАРЫХ ЭФФЕКТОВ ── */
+/* ── 6. УДАЛЕНИЕ СТАРЫХ ЭФФЕКТОВ ── */
 body::before, .app-wrapper::after, .auth-bg-orb, .rec-badge, .motion-alert, .digit-flicker {
   display: none !important;
 }
 
-/* ── 8. STICKER ZOOM ── */
+/* ── 7. STICKER ZOOM ── */
 .guide-item-zoom {
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: inline-block;
 }
 
 .guide-item:hover .guide-item-zoom,
-.guide-item:active .guide-item-zoom {
+.guide-item:active .guide-item-zoom,
+.guide-item-active .guide-item-zoom {
   transform: scale(1.4) rotate(5deg);
 }
 
