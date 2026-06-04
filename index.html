@@ -11,10 +11,9 @@
   <link rel="stylesheet" href="constructor.css">
   <link rel="stylesheet" href="cart.css">
   <link rel="stylesheet" href="extra.css">
-  <link rel="stylesheet" href="animations.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=YOUR_API_KEY" type="text/javascript"></script>
+
 </head>
 <body>
 <div class="app-wrapper">
@@ -22,7 +21,7 @@
   <!-- ══════════════ LANDING ══════════════ -->
   <div class="screen landing-screen active" id="screen-landing">
     <div class="landing-content">
-      <div class="landing-hero animate-in">
+      <div class="landing-hero">
         <div class="auth-logo-wrap">
           <svg class="auth-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
@@ -34,10 +33,11 @@
         <p>Мы создаем интеллектуальные системы видеонаблюдения, которые защищают то, что вам дорого. Надежно, просто, эффективно.</p>
         <button class="btn btn-primary" id="btn-landing-start">Начать работу</button>
       </div>
-      <div class="landing-sections animate-in stagger-1">
+      <div class="landing-sections">
         <section>
           <h3>Интеллектуальная безопасность</h3>
           <p>GAZE — это молодая и амбициозная команда инженеров-перфекционистов, поставивших своей целью переосмыслить стандарты технической безопасности. Мы не просто устанавливаем камеры — мы проектируем надежные экосистемы защиты для вашего дома и бизнеса.</p>
+          <p style="margin-top: 10px;">В своей работе мы используем только сертифицированное оборудование мировых лидеров отрасли (Hikvision, HiWatch), что гарантирует безотказную работу в любых условиях. Наш подход — это индивидуальный подбор решений под уникальные особенности каждого участка, безупречный монтаж и экспертная поддержка на всех этапах эксплуатации.</p>
         </section>
       </div>
     </div>
@@ -79,6 +79,8 @@
           Гости могут рассчитать стоимость, но не могут оформлять заказы.<br>
           <a href="#" id="btn-guest-link-tg" style="color:var(--accent);">Войти через Telegram →</a>
         </p>
+
+        <p>Защищено шифрованием. Авторизуясь, вы принимаете условия оферты.</p>
       </div>
     </div>
   </div>
@@ -90,8 +92,9 @@
         <span class="greeting">Привет,</span>
         <h1 id="home-username">Пользователь</h1>
       </div>
-      <div id="conn-status" style="font-size:11px; display:flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; border:1px solid; cursor:pointer;">
-        <span id="conn-status-text">...</span>
+      <div id="conn-status" style="font-size:10px; display:flex; align-items:center; gap:5px; background:rgba(0,255,148,0.1); color:var(--accent-2); padding:4px 10px; border-radius:20px; border:1px solid rgba(0,255,148,0.2);">
+         <div style="width:6px; height:6px; background:currentColor; border-radius:50%; box-shadow:0 0 5px currentColor;"></div>
+         <span>ONLINE</span>
       </div>
     </div>
     <div class="home-scroll">
@@ -110,41 +113,41 @@
       <div class="section-title" style="margin-bottom:14px;">Наши пакеты</div>
       <div class="kits-grid">
         <div class="kit-card" style="cursor:pointer;" id="home-pkg-budget">
-          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0a1a12,#050a08); color:var(--accent-2);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0d2b1a,#0a1a10);color:#00ff94;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
           <div class="kit-info">
-            <h4>ЭКОНОМ</h4>
-            <p>Прагматичный выбор. Надежность без переплат.</p>
+            <h4>💚 Эконом</h4>
+            <p>Базовая защита. Камеры 720p, надёжный регистратор</p>
             <div class="kit-footer">
-              <span class="kit-price" style="color:var(--accent-2);">от 8 900 ₽</span>
-              <button class="kit-add-btn">ВЫБРАТЬ</button>
+              <span class="kit-price" style="color:#00ff94;">от 8 900 ₽</span>
+              <button class="kit-add-btn">Рассчитать</button>
             </div>
           </div>
         </div>
         <div class="kit-card" style="cursor:pointer;" id="home-pkg-standard">
-          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0a161a,#05080a); color:var(--accent);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0d2233,#081420);color:#00d4ff;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
           </div>
           <div class="kit-info">
-            <h4>СТАНДАРТ</h4>
-            <p>Золотая середина. Идеальный баланс четкости.</p>
+            <h4>🔵 Стандарт</h4>
+            <p>Hikvision 1080p, PoE, удалённый доступ</p>
             <div class="kit-footer">
-              <span class="kit-price" style="color:var(--accent);">от 18 500 ₽</span>
-              <button class="kit-add-btn">ВЫБРАТЬ</button>
+              <span class="kit-price">от 18 500 ₽</span>
+              <button class="kit-add-btn">Рассчитать</button>
             </div>
           </div>
         </div>
         <div class="kit-card" style="cursor:pointer;" id="home-pkg-premium">
-          <div class="kit-image-stub" style="background:linear-gradient(135deg,#1a160a,#0a0805); color:var(--accent-gold);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#2a1f00,#1a1200);color:#ffd700;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </div>
           <div class="kit-info">
-            <h4>ПРЕМИУМ</h4>
-            <p>Бескомпромиссное 4K. Видеть всё до мелочей.</p>
+            <h4>🟡 Премиум</h4>
+            <p>4K, AI-аналитика, профессиональный монтаж</p>
             <div class="kit-footer">
-              <span class="kit-price" style="color:var(--accent-gold);">от 38 000 ₽</span>
-              <button class="kit-add-btn">ВЫБРАТЬ</button>
+              <span class="kit-price" style="color:#ffd700;">от 38 000 ₽</span>
+              <button class="kit-add-btn">Рассчитать</button>
             </div>
           </div>
         </div>
@@ -153,32 +156,7 @@
   </div>
 
   <!-- ══════════════ CALCULATOR ══════════════ -->
-  <!-- ══════════════ SUPPORT CHAT ══════════════ -->
-  <div class="screen support-screen" id="screen-support">
-    <div class="screen-header"><h2>Чат поддержки</h2></div>
-    <div id="engineer-card" style="background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(0,255,148,0.05));border:1px solid rgba(0,212,255,0.2);border-radius:16px;padding:16px;margin:20px;margin-bottom:0;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-        <div style="width:44px;height:44px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;">👷</div>
-        <div>
-          <div style="font-weight:700;font-size:15px;">Инженер на связи</div>
-          <div style="font-size:12px;color:var(--text-secondary);">Ответим в течение 15 минут</div>
-        </div>
-        <div style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 6px var(--accent-2);"></div>
-      </div>
-      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Задайте любой вопрос по вашему заказу — уточним детали, согласуем время монтажа.</p>
-    </div>
-    <div id="support-chat-messages" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:10px;">
-      <div class="chat-msg system">Здравствуйте! Чат доступен после вашего первого заказа. Чем мы можем помочь?</div>
-    </div>
-    <div class="chat-input-wrap" style="padding:15px; background:var(--bg-card); display:flex; gap:10px;">
-      <input type="text" id="support-input" placeholder="Введите сообщение..." style="flex:1; background:transparent; color:white; border:1px solid var(--glass-border); border-radius:20px; padding:10px 15px;">
-      <button class="btn-send" id="btn-send-support" style="background:var(--accent); color:var(--bg-primary); border:none; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <div class="screen" id="screen-calculator" style="padding-bottom:100px;">
+  <div class="screen" id="screen-calculator">
     <div class="screen-header">
       <h2>Калькулятор системы</h2>
     </div>
@@ -213,24 +191,24 @@
         <div class="camera-types">
           <div class="camera-type-card cam-type-card" data-type="indoor">
             <div class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
-            <div class="card-title">ВНУТРИ</div>
-            <div class="card-desc">Интерьерный охват. Оптимально для офисов и жилых зон.</div>
+            <div class="card-title">🏠 Внутри помещения</div>
+            <div class="card-desc">Офис, склад, магазин, квартира. 1 камера ≈ 20 м², угол 104°.</div>
           </div>
           <div class="camera-type-card cam-type-card" data-type="outdoor">
             <div class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 10l1 4m0 0l1 4m-2-8l-2-7l-3 2l2 7m3-2l-3-2M4 7h16M4 7l-1 4m1-4l1-4m-2 8l2 7l3-2l-2-7M3 11h3m14 0h3m-9 3v4m0 0h-2m2 0h2"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
             </div>
-            <div class="card-title">СНАРУЖИ</div>
-            <div class="card-desc">Периметральная защита. IP67, работа в любых погодных условиях.</div>
+            <div class="card-title">🏢 Периметр/улица</div>
+            <div class="card-desc">Территория, парковка, забор. Расчёт по периметру, 1 камера ≈ 15м.</div>
           </div>
           <div class="camera-type-card cam-type-card" data-type="mixed">
             <div class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-3a1 1 0 011-1h2a1 1 0 011 1v3"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
             </div>
-            <div class="card-title">КОМБИ</div>
-            <div class="card-desc">Полный контроль. Оптимальное сочетание внутренних и внешних зон.</div>
+            <div class="card-title">🏗 Смешанный</div>
+            <div class="card-desc">И внутри и снаружи. Оптимальная расстановка по объекту.</div>
           </div>
         </div>
         <div class="step-footer-actions" style="margin-top:28px;">
@@ -258,7 +236,7 @@
 
         <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
           <!-- Эконом -->
-          <div class="pkg-card camera-type-card" data-pkg="budget" style="border-left: 3px solid #00ff94;">
+          <div class="pkg-card" data-pkg="budget" style="border-left: 3px solid #00ff94;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
               <div class="card-icon" style="background:rgba(0,255,148,0.1);color:#00ff94;flex-shrink:0;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -278,7 +256,7 @@
           </div>
 
           <!-- Стандарт -->
-          <div class="pkg-card camera-type-card" data-pkg="standard" style="border-left: 3px solid #00d4ff;">
+          <div class="pkg-card" data-pkg="standard" style="border-left: 3px solid #00d4ff;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
               <div class="card-icon" style="flex-shrink:0;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
@@ -298,7 +276,7 @@
           </div>
 
           <!-- Премиум -->
-          <div class="pkg-card camera-type-card" data-pkg="premium" style="border-left: 3px solid #ffd700;">
+          <div class="pkg-card" data-pkg="premium" style="border-left: 3px solid #ffd700;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
               <div class="card-icon" style="background:rgba(255,215,0,0.1);color:#ffd700;flex-shrink:0;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -344,10 +322,6 @@
               <div class="checkbox-desc">4G-роутер + антенна для удаленного доступа.</div>
             </div>
           </div>
-          <div id="internet-operators-panel" style="display:none; margin-top:12px; padding:14px; background:var(--bg-card); border:1px solid var(--glass-border); border-radius:14px;">
-            <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-secondary);">Выберите провайдера:</div>
-            <div id="operators-list" style="display:flex; flex-direction:column; gap:8px;"></div>
-          </div>
           <div class="checkbox-row option-checkbox" data-option="maintenance">
             <div class="custom-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
             <div class="checkbox-body">
@@ -365,15 +339,7 @@
 
       <!-- ШАГ 3 — Результат -->
       <div class="calc-step constructor-step" id="calc-step-3">
-        <div class="cctv-overlay"></div>
-        <div class="viewfinder-corner corner-tl"></div>
-        <div class="viewfinder-corner corner-tr"></div>
-        <div class="viewfinder-corner corner-bl"></div>
-        <div class="viewfinder-corner corner-br"></div>
-        <div class="rec-badge"><div class="rec-dot"></div> REC</div>
-        <div class="motion-alert" id="motion-alert">Motion Detected</div>
-
-        <div class="step-title" style="padding-left: 20px;">Спецификация и стоимость</div>
+        <div class="step-title">Спецификация и стоимость</div>
         <div class="compat-results-list" id="result-items"></div>
         <div class="total-card" id="result-summary" style="margin-bottom:10px;"></div>
 
@@ -396,46 +362,6 @@
           <button class="btn btn-secondary" id="btn-new-order" style="margin-top:12px;width:100%;">Новый расчёт</button>
         </div>
 
-        <div style="margin-top:16px; margin-bottom:8px;">
-          <button class="btn btn-secondary" id="btn-pro-mode" style="border-color:rgba(0,212,255,0.3); color:var(--accent); font-size:13px;">
-            🔧 Для профи — выбрать оборудование вручную
-          </button>
-        </div>
-
-        <div id="pro-mode-panel" style="display:none; margin-top:20px; animation: fadeIn 0.4s ease;">
-          <div class="section-title" style="margin-bottom:20px; display:flex; align-items:center; gap:8px;">
-            <span style="color:var(--accent-gold)">✧</span> Ручной подбор <span style="color:var(--accent-gold)">✧</span>
-          </div>
-
-          <div class="pro-tabs" style="display:flex; gap:10px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px;">
-            <button class="pro-tab active" data-pro-cat="camera">📷 Камеры</button>
-            <button class="pro-tab" data-pro-cat="dvr">📼 NVR</button>
-            <button class="pro-tab" data-pro-cat="hdd">💾 Диски</button>
-          </div>
-
-          <div id="pro-cat-content">
-            <div class="pro-cat-pane active" id="pro-cat-camera">
-              <div style="display:flex; flex-direction:column; gap:10px;" id="pro-cameras-list"></div>
-            </div>
-            <div class="pro-cat-pane" id="pro-cat-dvr" style="display:none;">
-              <div style="display:flex; flex-direction:column; gap:10px;" id="pro-dvr-list"></div>
-            </div>
-            <div class="pro-cat-pane" id="pro-cat-hdd" style="display:none;">
-              <div style="display:flex; flex-direction:column; gap:10px;" id="pro-hdd-list"></div>
-            </div>
-          </div>
-
-          <div class="total-card" id="pro-total-card" style="margin-top:24px; margin-bottom:20px; border-color:var(--accent-gold); background:rgba(194, 166, 126, 0.05);">
-            <div class="total-row total-final">
-              <span class="total-label" style="color:var(--accent-gold)">СУММА ПОДБОРА</span>
-              <span class="total-value" id="pro-total-price" style="color:var(--accent-gold)">0 ₽</span>
-            </div>
-          </div>
-          <button class="btn btn-primary" id="btn-pro-add-to-cart" style="background:var(--accent-gold); border-color:rgba(255,255,255,0.1)">
-            🛒 Добавить в спецификацию
-          </button>
-        </div>
-
         <div class="step-footer-actions dual">
           <button class="btn btn-secondary" id="btn-calc3-back">← Назад</button>
           <button class="btn btn-accent" id="btn-calc3-order">
@@ -446,6 +372,20 @@
 
     </div><!-- end calc-scroll -->
   </div>
+  <!-- ══════════════ SUPPORT CHAT ══════════════ -->
+  <div class="screen support-screen" id="screen-support">
+    <div class="screen-header"><h2>Чат поддержки</h2></div>
+    <div id="support-chat-messages" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:10px;">
+      <div class="chat-msg system">Здравствуйте! Чат доступен после вашего первого заказа. Чем мы можем помочь?</div>
+    </div>
+    <div class="chat-input-wrap" style="padding:15px; background:var(--bg-card); display:flex; gap:10px;">
+      <input type="text" id="support-input" placeholder="Введите сообщение..." style="flex:1; background:transparent; color:white; border:1px solid var(--glass-border); border-radius:20px; padding:10px 15px;">
+      <button class="btn-send" id="btn-send-support" style="background:var(--accent); color:var(--bg-primary); border:none; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+
 
 
   <!-- ══════════════ ADMIN PANEL ══════════════ -->
@@ -504,11 +444,6 @@
     </div>
 
     <div class="profile-view-wrap" id="profile-main-view">
-      <div id="guest-banner" style="display:none; background:rgba(255,165,0,0.08); border:1px solid rgba(255,165,0,0.25); border-radius:14px; padding:16px; margin-bottom:20px; text-align:center;">
-        <div style="font-size:15px; font-weight:700; margin-bottom:6px;">👤 Вы вошли как гость</div>
-        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">Войдите через Telegram чтобы сохранять заказы, получать уведомления и использовать реферальную программу</div>
-        <button class="btn btn-primary" id="btn-link-telegram" style="padding:12px;">🔗 Привязать Telegram аккаунт</button>
-      </div>
       <div class="profile-hero">
         <div class="profile-avatar">
           <span id="profile-initials">П</span>
@@ -539,49 +474,15 @@
          <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">У вас пока нет заказов</div>
       </div>
 
-      <div id="chat-engineer-btn-wrap" style="display:none; margin-bottom:20px;">
-        <button class="btn btn-accent" data-screen="support" style="gap:10px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          Чат с инженером
-        </button>
-      </div>
-
-      <!-- Referral Program Hub -->
-      <div class="referral-card" style="border-radius:20px; padding:20px; margin-bottom:24px; margin-top:24px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-          <div style="display:flex; flex-direction:column;">
-            <div style="font-size:15px; font-weight:700; color:var(--accent-gold); letter-spacing:0.5px;">РЕФЕРАЛЬНЫЙ ХАБ</div>
-            <div style="font-size:11px; color:var(--text-muted);">Зарабатывайте с каждого заказа друзей</div>
-          </div>
-          <div class="ref-stat-circle">
-            <div class="ref-stat-val" id="ref-bonus-display">0</div>
-            <div class="ref-stat-label">₽</div>
-          </div>
+      <!-- Referral Program -->
+      <div class="section-title" style="margin-top:20px; margin-bottom:12px;">💎 Реферальная программа</div>
+      <div class="referral-card" style="background:var(--bg-card); border:1px solid var(--accent-dim); border-radius:16px; padding:16px; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="font-size:14px; color:var(--text-secondary);">Ваш бонусный баланс:</div>
+          <div style="font-size:20px; font-weight:800; color:var(--accent-2);" id="ref-bonus-display">0 ₽</div>
         </div>
-
-        <div class="ref-code-box">
-          <div style="flex:1;">
-            <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px;">Ваш код</div>
-            <div style="font-family:monospace; font-size:14px; color:var(--text-primary); letter-spacing:2px; font-weight:700;" id="ref-code-display">GAZE-XXXX</div>
-          </div>
-          <button id="btn-copy-ref-code" style="background:var(--accent-dim); border:var(--border-thin); border-radius:10px; padding:8px 14px; color:var(--accent); font-size:11px; font-weight:700; cursor:pointer;">КОПИРОВАТЬ</button>
-        </div>
-
-        <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:20px;">Поделитесь ссылкой: друг получит <b style="color:var(--accent-gold);">скидку 5 000 ₽</b> на монтаж, а вы — <b style="color:var(--accent-2);">бонус на счет</b>.</p>
-
-        <div style="display:flex; gap:10px;">
-          <button class="btn btn-primary" id="btn-share-ref-tg" style="padding:12px; font-size:13px; flex:1; background:var(--accent); color:#000;">
-            ✈️ Пригласить
-          </button>
-          <button class="btn btn-secondary" id="btn-share-ref" style="padding:12px; font-size:13px; width:50px;">
-            📤
-          </button>
-        </div>
-
-        <div id="ref-invites-section" style="margin-top:20px; display:none;">
-          <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:12px; letter-spacing:1px;">Ваша сеть:</div>
-          <div id="ref-invites-list" style="display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
+        <p style="font-size:12px; color:var(--text-muted); line-height:1.4; margin-bottom:16px;">Приглашайте друзей и получайте 1% от суммы их заказов на свой бонусный счет!</p>
+        <button class="btn btn-secondary" id="btn-share-ref" style="padding:10px; font-size:13px;">🎁 Пригласить друга</button>
       </div>
 
       <div class="section-title" style="margin-bottom:12px;">⚠️ Личные данные</div>
@@ -638,10 +539,6 @@
           <input type="tel" id="edit-phone" placeholder="+7 (999) 000-00-00" autocomplete="tel">
         </div>
         <div class="input-group">
-          <label>📧 Email (для уведомлений)</label>
-          <input type="email" id="edit-email" placeholder="example@mail.ru" autocomplete="email">
-        </div>
-        <div class="input-group">
           <label>📍 Адрес объекта</label>
           <div style="display:flex; gap:8px; margin-bottom:8px;">
             <input type="text" id="edit-address" placeholder="Введите адрес вручную" style="flex:1;">
@@ -659,50 +556,21 @@
   <div class="screen guide-screen" id="screen-guide">
     <div class="screen-header"><h2>Гайд по технологиям</h2></div>
     <div class="faq-scroll" style="flex:1; overflow-y:auto; padding:20px;">
-      <div style="margin-bottom:20px;">
-        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">📷 Выбор камер</div>
-
-        <div class="guide-item animate-in stagger-1" onclick="this.classList.toggle('guide-item-active')">
-          <div class="guide-item-zoom">🔫</div>
-          <h4>Уличная (Bullet)</h4>
-          <p>Цилиндрический корпус. Видимый фактор защиты. Мощная ИК-подсветка. Идеальна для периметра.</p>
-        </div>
-
-        <div class="guide-item animate-in stagger-2" onclick="this.classList.toggle('guide-item-active')">
-          <div class="guide-item-zoom">⚪</div>
-          <h4>Купольная (Dome)</h4>
-          <p>Компактная и эстетичная. Широкий угол обзора. Подходит для офисов, квартир и подъездов.</p>
-        </div>
-
-        <div class="guide-item animate-in stagger-3" onclick="this.classList.toggle('guide-item-active')">
-          <div class="guide-item-zoom">🔍</div>
-          <h4>Разрешение</h4>
-          <p>2МП — базово. 4МП — стандарт четкости. 8МП (4K) — для тех, кто хочет видеть каждую деталь и номер авто.</p>
-        </div>
+      <div class="faq-item">
+        <h4>Что такое NVR и зачем он нужен?</h4>
+        <p>Network Video Recorder — это «мозг» системы. Он принимает сигнал от камер, записывает его на жесткий диск и обеспечивает вам доступ к архиву через смартфон из любой точки мира.</p>
       </div>
-
-      <!-- HDD section -->
-      <div style="margin-bottom:20px;">
-        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">💾 Хранение</div>
-        <div class="faq-item"><h4>WD Purple vs обычный HDD</h4><p>Обычные диски не предназначены для непрерывной записи 24/7. WD Purple и Seagate SkyHawk специально оптимизированы: выдерживают 3+ года непрерывной работы.</p></div>
-        <div class="faq-item"><h4>Расчёт объёма</h4><p>1 камера 4МП H.265+ ≈ 8-12 ГБ/сутки. На 4 камеры 14 дней = ~600 ГБ. Рекомендуем диски с запасом: берите следующий типоразмер.</p></div>
-        <div class="faq-item"><h4>RAID-массивы</h4><p>Для объектов с критичным архивом (банки, склады) рекомендуем RAID-1: два диска зеркалируют друг друга. При выходе одного — данные не теряются.</p></div>
+      <div class="faq-item">
+        <h4>Разрешение: 2МП vs 4K (8МП)</h4>
+        <p>2МП (1080p) достаточно, чтобы видеть общую картину. 4K позволяет детально рассмотреть лицо человека или номер автомобиля на значительном расстоянии при цифровом зуме.</p>
       </div>
-
-      <!-- Networking section -->
-      <div style="margin-bottom:20px;">
-        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">🌐 Интернет и сеть</div>
-        <div class="faq-item"><h4>Кабельный интернет для системы</h4><p>Оптимальный вариант. Стабильный канал, не зависит от погоды. Рекомендуем выделенный роутер для системы видеонаблюдения.</p></div>
-        <div class="faq-item"><h4>4G-роутер как резерв</h4><p>Если кабельный интернет пропадёт — система автоматически переключится на 4G. Мы устанавливаем роутеры с поддержкой двух SIM-карт.</p></div>
-        <div class="faq-item"><h4>VPN и безопасность</h4><p>Для корпоративных объектов рекомендуем VPN-туннель вместо проброса портов. Это защищает систему от взлома извне.</p></div>
+      <div class="faq-item">
+        <h4>Преимущества PoE питания</h4>
+        <p>Power over Ethernet позволяет передавать и данные, и электричество по одному кабелю «витая пара». Это надежнее, упрощает монтаж и исключает помехи, характерные для старых аналоговых систем.</p>
       </div>
-
-      <!-- Mounting section -->
-      <div style="margin-bottom:20px;">
-        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">🔧 Монтаж</div>
-        <div class="faq-item"><h4>Кабель: витая пара vs коаксиал</h4><p>Мы используем только витую пару (Cat5e/Cat6) — универсальный стандарт для IP-систем. PoE по Cat6 до 100 метров без усилителей.</p></div>
-        <div class="faq-item"><h4>Скрытый монтаж</h4><p>Прокладка кабеля в кабель-каналах или за гипсокартоном. Обсуждается при выезде инженера на объект.</p></div>
-        <div class="faq-item"><h4>Гарантия на монтаж</h4><p>12 месяцев на все монтажные работы. При обрыве или отказе соединений — бесплатный выезд и устранение.</p></div>
+      <div class="faq-item">
+        <h4>Глубина архива и HDD</h4>
+        <p>Мы используем диски серии WD Purple или Seagate SkyHawk, оптимизированные для работы 24/7. Рекомендуемый архив — от 14 дней. При заполнении диска старые записи заменяются новыми автоматически.</p>
       </div>
     </div>
   </div>
@@ -730,23 +598,7 @@
     </div>
   </div>
 
-  <!-- Scanning Overlay -->
-  <div id="scanning-overlay" style="display:none; position:fixed; inset:0; background:rgba(8,12,20,0.9); z-index:5000; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(10px);">
-    <div style="width:200px; height:200px; border:2px solid var(--accent); border-radius:50%; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-      <div id="scanning-radar" style="position:absolute; inset:0; background:conic-gradient(from 0deg, var(--accent), transparent); opacity:0.3;"></div>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="80" height="80" style="color:var(--accent); z-index:2;">
-        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
-      </svg>
-    </div>
-    <div style="margin-top:24px; font-family:var(--font-display); font-size:18px; font-weight:700; color:var(--accent); letter-spacing:2px; text-transform:uppercase;" id="scanning-text">Анализ объекта...</div>
-    <div style="margin-top:8px; font-family:monospace; font-size:10px; color:rgba(0,212,255,0.6);" id="scanning-hud">LAT: 55.75 | LNG: 37.61 | CAM_ID: GH-04</div>
-    <div style="margin-top:10px; width:200px; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden;">
-      <div id="scanning-progress" style="width:0%; height:100%; background:var(--accent);"></div>
-    </div>
-  </div>
-
   <nav class="bottom-nav" id="bottom-nav" style="display:none;">
-    <div class="nav-glow"></div>
     <button class="nav-item" data-screen="home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span>Главная</span>
