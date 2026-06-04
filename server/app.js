@@ -121,11 +121,8 @@ const authMiddleware = (req, res, next) => {
 };
 
 const adminMiddleware = (req, res, next) => {
-  const initData = req.headers['x-tg-init-data'] || '';
-  const isJules = initData.includes('jules.google');
-
   getDb().get('SELECT role FROM users WHERE tg_id = ?', [req.tgUser.id], (err, user) => {
-    if (isJules || (user && user.role === 'admin')) {
+    if (user && user.role === 'admin') {
       return next();
     }
     res.status(403).json({ error: 'Forbidden' });

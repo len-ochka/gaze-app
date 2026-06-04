@@ -832,7 +832,7 @@ function prepareNewScreen(name, el) {
 
   // Инициализация логики экранов
   if (name === 'home') renderHome();
-  if (name === 'cart') renderCart();
+
   if (name === 'profile') renderProfile();
   if (name === 'calculator') {
     renderCalcStep(1);

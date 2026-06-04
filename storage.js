@@ -145,7 +145,11 @@ const StorageService = (() => {
     set('user', updatedUser); // Optimistic local update
 
     try {
-      await apiRequest('/user/profile', 'PUT', profile);
+      const serverUser = await apiRequest('/user/profile', 'PUT', profile);
+      if (serverUser) {
+        set('user', serverUser);
+        return serverUser;
+      }
     } catch (e) {
       console.error('[StorageService] Failed to sync profile to server:', e);
       // We keep the local version but the user is notified by the caller
@@ -231,6 +235,22 @@ const StorageService = (() => {
   async function getReferralData() { return await apiRequest('/user/referrals'); }
   async function getOrderHistory() { return await apiRequest('/orders/history'); }
 
+  async function generateReferralCode(userId) {
+    if (!userId || userId === 0) return null;
+    const existing = get('referral_code');
+    if (existing) return { code: existing };
+    const code = 'GZ' + (userId ? Math.abs(userId).toString(36).toUpperCase().padStart(6,'0').substring(0,6) : Math.random().toString(36).substring(2,8).toUpperCase());
+    try {
+      const result = await apiRequest('/user/referral/generate', 'POST', { code });
+      const finalCode = result?.code || code;
+      set('referral_code', finalCode);
+      return { code: finalCode };
+    } catch {
+      set('referral_code', code);
+      return { code };
+    }
+  }
+
   return {
     API_URL,
     syncUser,
@@ -241,6 +261,7 @@ const StorageService = (() => {
     updateOrderStatus,
     getReferralData,
     getOrderHistory,
+    generateReferralCode,
     getUser,
     getOrderCount,
     clearSession,

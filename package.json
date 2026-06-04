@@ -1,22 +1,22 @@
 {
-  "name": "server",
-  "version": "1.0.0",
-  "description": "",
+  "name": "gaze-twa-v2",
+  "version": "2.1.0",
+  "description": "Professional CCTV Calculator & Mini App",
   "main": "server/app.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server/app.js",
+    "install-server": "cd server && npm install",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "mysql2": "^3.22.4",
-    "nodemailer": "^8.0.8",
-    "sqlite3": "^6.0.1"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.9.7",
+    "nodemailer": "^6.9.13",
+    "sqlite3": "^5.1.7"
   }
 }
