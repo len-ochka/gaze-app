@@ -116,3 +116,8 @@ body::before, .app-wrapper::after, .auth-bg-orb, .scan-ping, #scanning-radar, .v
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+.stagger-1 { animation-delay: 0.04s !important; }
+.stagger-2 { animation-delay: 0.09s !important; }
+.stagger-3 { animation-delay: 0.14s !important; }
+.stagger-4 { animation-delay: 0.19s !important; }

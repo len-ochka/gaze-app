@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="extra.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&amp;apikey=YOUR_API_KEY" type="text/javascript"></script>
 </head>
 <body>
 <div class="app-wrapper">
@@ -31,7 +31,11 @@
         </div>
         <h1>Ваша безопасность — наша миссия</h1>
         <p>Мы создаем интеллектуальные системы видеонаблюдения, которые защищают то, что вам дорого. Надежно, просто, эффективно.</p>
-        <button class="btn btn-primary" id="btn-landing-start">Начать работу</button>
+        <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;margin:0 auto;">
+  <button class="btn btn-primary" id="btn-landing-start">Начать →</button>
+  <button class="btn btn-secondary" id="btn-landing-guest" style="font-size:14px;border-color:rgba(255,255,255,0.15);">👁 Продолжить как гость</button>
+</div>
+<p style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.5;">Гости могут рассчитать стоимость,<br>но не могут оформлять заказы.</p>
       </div>
       <div class="landing-sections">
         <section>
@@ -72,14 +76,6 @@
         </div>
       </div>
       <div class="auth-footer">
-        <button id="btn-guest-enter" class="btn btn-secondary" style="width:100%; margin-bottom:16px; border-color:rgba(255,255,255,0.2); font-size:14px;">
-          👁 Продолжить как гость
-        </button>
-        <p style="font-size:11px; color:var(--text-muted); line-height:1.5;">
-          Гости могут рассчитать стоимость, но не могут оформлять заказы.<br>
-          <a href="#" id="btn-guest-link-tg" style="color:var(--accent);">Войти через Telegram →</a>
-        </p>
-
         <p>Защищено шифрованием. Авторизуясь, вы принимаете условия оферты.</p>
       </div>
     </div>
@@ -156,7 +152,21 @@
   </div>
 
   <!-- ══════════════ CALCULATOR ══════════════ -->
-  <div class="screen" id="screen-calculator">
+  <!-- ══════════════ SUPPORT CHAT ══════════════ -->
+  <div class="screen support-screen" id="screen-support">
+    <div class="screen-header"><h2>Чат поддержки</h2></div>
+    <div id="support-chat-messages" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:10px;">
+      <div class="chat-msg system">Здравствуйте! Чат доступен после вашего первого заказа. Чем мы можем помочь?</div>
+    </div>
+    <div class="chat-input-wrap" style="padding:15px; background:var(--bg-card); display:flex; gap:10px;">
+      <input type="text" id="support-input" placeholder="Введите сообщение..." style="flex:1; background:transparent; color:white; border:1px solid var(--glass-border); border-radius:20px; padding:10px 15px;">
+      <button class="btn-send" id="btn-send-support" style="background:var(--accent); color:var(--bg-primary); border:none; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-calculator" style="padding-bottom:100px;">
     <div class="screen-header">
       <h2>Калькулятор системы</h2>
     </div>
@@ -236,7 +246,7 @@
 
         <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
           <!-- Эконом -->
-          <div class="pkg-card" data-pkg="budget" style="border-left: 3px solid #00ff94;">
+          <div class="pkg-card camera-type-card" data-pkg="budget" style="border-left: 3px solid #00ff94;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
               <div class="card-icon" style="background:rgba(0,255,148,0.1);color:#00ff94;flex-shrink:0;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -256,7 +266,7 @@
           </div>
 
           <!-- Стандарт -->
-          <div class="pkg-card" data-pkg="standard" style="border-left: 3px solid #00d4ff;">
+          <div class="pkg-card camera-type-card" data-pkg="standard" style="border-left: 3px solid #00d4ff;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
               <div class="card-icon" style="flex-shrink:0;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
@@ -276,7 +286,7 @@
           </div>
 
           <!-- Премиум -->
-          <div class="pkg-card" data-pkg="premium" style="border-left: 3px solid #ffd700;">
+          <div class="pkg-card camera-type-card" data-pkg="premium" style="border-left: 3px solid #ffd700;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
               <div class="card-icon" style="background:rgba(255,215,0,0.1);color:#ffd700;flex-shrink:0;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -372,21 +382,6 @@
 
     </div><!-- end calc-scroll -->
   </div>
-  <!-- ══════════════ SUPPORT CHAT ══════════════ -->
-  <div class="screen support-screen" id="screen-support">
-    <div class="screen-header"><h2>Чат поддержки</h2></div>
-    <div id="support-chat-messages" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:10px;">
-      <div class="chat-msg system">Здравствуйте! Чат доступен после вашего первого заказа. Чем мы можем помочь?</div>
-    </div>
-    <div class="chat-input-wrap" style="padding:15px; background:var(--bg-card); display:flex; gap:10px;">
-      <input type="text" id="support-input" placeholder="Введите сообщение..." style="flex:1; background:transparent; color:white; border:1px solid var(--glass-border); border-radius:20px; padding:10px 15px;">
-      <button class="btn-send" id="btn-send-support" style="background:var(--accent); color:var(--bg-primary); border:none; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>
-  </div>
-
-
 
   <!-- ══════════════ ADMIN PANEL ══════════════ -->
   <div class="screen admin-screen" id="screen-admin">
@@ -576,7 +571,31 @@
   </div>
 
   <!-- ══════════════ FAQ ══════════════ -->
-  <div class="screen faq-screen" id="screen-faq">
+  <!-- ══════════════ CART ══════════════ -->
+<div class="screen" id="screen-cart">
+  <div class="screen-header" style="display:flex;align-items:center;gap:12px;padding:20px 20px 0;">
+    <button class="back-btn" onclick="App.showScreen('calculator')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <h2>Спецификация</h2>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:20px;" id="cart-list">
+    <p style="color:var(--text-muted);text-align:center;margin-top:40px;">Корзина пуста</p>
+  </div>
+  <div style="padding:16px 20px;border-top:1px solid var(--glass-border);">
+    <div class="total-card" style="margin-bottom:12px;">
+      <div class="total-row total-final">
+        <span class="total-label">ИТОГО</span>
+        <span class="total-value" id="cart-total-price">0 ₽</span>
+      </div>
+    </div>
+    <button class="btn btn-accent" id="btn-cart-order">📩 Оформить заявку</button>
+  </div>
+</div>
+
+<div class="screen faq-screen" id="screen-faq">
     <div class="screen-header"><h2>Часто задаваемые вопросы</h2></div>
     <div class="faq-scroll" style="flex:1; overflow-y:auto; padding:20px;">
       <div class="faq-item">

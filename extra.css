@@ -69,7 +69,12 @@ input[type="number"] { -moz-appearance: textfield; }
 .compat-card { animation: slideIn 0.2s ease forwards; }
 
 /* Улучшенный прайс */
-
+.total-card {
+  background: linear-gradient(135deg, rgba(0,212,255,0.08), rgba(0,255,148,0.05));
+  border: 1px solid rgba(0,212,255,0.2);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
 
 .shimmer {
   background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%);

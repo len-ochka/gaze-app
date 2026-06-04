@@ -282,8 +282,8 @@ function buildSpec(pkg, area, camType, opts) {
   if (opts.maintenance) items.push({ name: 'Техническое обслуживание', spec: 'Ежемесячный выезд, чистка, проверка дисков', price: PRICES.maintenance, qty: 1, icon: '🛠️' });
   items.push({ name: 'Монтаж и настройка системы', spec: camCount + ' точек + NVR + кабель', price: laborTotal, qty: 1, icon: '🔧' });
 
-  const equipmentTotal = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal + internetTotal + (opts.maintenance ? PRICES.maintenance : 0);
-  let total = equipmentTotal + laborTotal;
+  const equipmentTotal = camTotal + dvrTotal + cableTotal + poeTotal + hddTotal + micTotal + internetTotal;
+  let total = equipmentTotal + laborTotal + (opts.maintenance ? PRICES.maintenance : 0);
 
   // Округляем итог до сотен
   total = Math.round(total / 100) * 100;
@@ -365,18 +365,9 @@ function openFullMap() {
   if (modal) modal.style.display = 'block';
   haptic('light');
 
-  if (!window.ymaps) {
-    const script = document.createElement('script');
-    script.src = 'https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=' + (window.YANDEX_MAPS_KEY || '');
-    script.onload = () => initYandexMap();
-    document.head.appendChild(script);
-    return;
-  }
-  initYandexMap();
-}
-
-function initYandexMap() {
   const currentAddr = $('edit-address')?.value;
+
+  if (!window.ymaps) return;
   window.ymaps.ready(() => {
     if (!myMap) {
       myMap = new ymaps.Map("big-map", {
@@ -678,28 +669,11 @@ async function init() {
   if (!hasSeenLanding) {
     showScreen('landing');
   } else {
+    // If not first time, start auth process
     performAuth();
   }
 
   bindAll();
-
-  // Listen for retry button
-  $('btn-auth-retry')?.addEventListener('click', () => {
-    haptic('medium');
-    performAuth();
-  });
-
-  // Listen for guest login button
-  $('btn-guest-enter')?.addEventListener('click', () => {
-    haptic('medium');
-    enterAsGuest();
-  });
-
-  $('btn-guest-link-tg')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    haptic('medium');
-    performAuth();
-  });
 
   // Listen for retry button
   $('btn-auth-retry')?.addEventListener('click', () => {
@@ -713,12 +687,7 @@ async function init() {
  * Реализует защищённый вход с автоматическими повторами и переходом в офлайн-режим.
  */
 async function performAuth() {
-  if (state.isAuthInProgress) return;
-
-  if (state.user?.isGuest) {
-    state.user = null;
-    StorageService.clearSession();
-  }
+  if (state.user?.isGuest) { StorageService.clearSession(); state.user = null; }
   if (state.isAuthInProgress) return;
 
   state.isAuthInProgress = true;
@@ -835,9 +804,6 @@ function showScreen(name) {
 }
 
 function prepareNewScreen(name, el) {
-  if (name !== 'support') {
-    clearInterval(supportInterval);
-  }
   el.classList.add('active');
   state.screen = name;
 
@@ -866,6 +832,7 @@ function prepareNewScreen(name, el) {
 
   // Инициализация логики экранов
   if (name === 'home') renderHome();
+  if (name === 'cart') renderCart();
   if (name === 'profile') renderProfile();
   if (name === 'calculator') {
     renderCalcStep(1);
@@ -910,8 +877,8 @@ function bindAuth() {
     });
   });
 
-  $('btn-login')?.addEventListener('click', () => toast('Используйте Telegram для входа'));
-  $('btn-register')?.addEventListener('click', () => toast('Используйте Telegram для входа'));
+
+
 }
 
 // ─── ГЛАВНАЯ ──────────────────────────────────────────────────────────────────
@@ -1156,8 +1123,6 @@ function renderProfile() {
 }
 
 function applyPhoneMask(input) {
-  if (input.dataset.maskBound) return;
-  input.dataset.maskBound = 'true';
   const onInput = (e) => {
     let value = input.value.replace(/\D/g, '');
     if (value.startsWith('8')) value = '7' + value.slice(1);
@@ -1340,6 +1305,11 @@ function bindAll() {
     $('order-success').classList.remove('show');
     state.calc = { area: 0, cameraType: null, package: null, soundRecord: false, motionDetect: false, hasInternet: false, maintenance: false, result: null };
     $$('.cam-type-card').forEach(c => c.classList.remove('selected'));
+  $('btn-landing-guest')?.addEventListener('click', () => {
+    haptic('medium');
+    localStorage.setItem('gaze_seen_landing', 'true');
+    enterAsGuest();
+  });
     $$('.pkg-card').forEach(c => c.classList.remove('selected'));
     $$('.option-checkbox').forEach(r => r.classList.remove('checked'));
     const areaInput = $('area-input'); if (areaInput) areaInput.value = '';
@@ -1391,9 +1361,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 window.App = { init, state, showScreen, renderAdmin, renderProfile };
 
-/**
- * Вход в режиме гостя (без Telegram авторизации).
- */
 function enterAsGuest() {
   const guestUser = {
     id: 0,
@@ -1403,12 +1370,26 @@ function enterAsGuest() {
     role: 'user',
     isGuest: true
   };
-
   state.user = guestUser;
-  state.orderCount = 0;
   StorageService.set('user', guestUser);
   renderConnBadge();
-
   toast('Вход выполнен в гостевом режиме');
   setTimeout(() => showScreen('home'), 500);
+}
+function renderConnBadge() {
+  const el = document.getElementById('conn-status');
+  if (!el) return;
+  if (state.user?.isGuest) {
+    el.style.background = 'rgba(255,165,0,0.12)';
+    el.style.color = '#ffaa00';
+    el.style.borderColor = 'rgba(255,165,0,0.3)';
+    el.innerHTML = '<span>👤 Войти в Telegram</span>';
+    el.onclick = () => performAuth();
+  } else if (state.user) {
+    el.style.background = 'rgba(0,255,148,0.1)';
+    el.style.color = 'var(--accent-2)';
+    el.style.borderColor = 'rgba(0,255,148,0.2)';
+    el.innerHTML = '<span>✓ @' + (state.user.username || state.user.full_name) + '</span>';
+    el.onclick = null;
+  }
 }
