@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#080c14">
+  <title>GAZE — Системы видеонаблюдения</title>
+  <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="profile.css">
+  <link rel="stylesheet" href="constructor.css">
+  <link rel="stylesheet" href="cart.css">
+  <link rel="stylesheet" href="extra.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- ══════════════ AUTH ══════════════ -->
+  <div class="screen auth-screen" id="screen-auth">
+    <div class="auth-bg">
+      <div class="auth-bg-orb auth-bg-orb-1"></div>
+      <div class="auth-bg-orb auth-bg-orb-2"></div>
+    </div>
+    <div class="auth-content">
+      <div class="auth-hero">
+        <div class="auth-logo-wrap">
+          <svg class="auth-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+          <h2>GAZE</h2>
+        </div>
+        <p>Умный подбор и монтаж систем видеонаблюдения под ваш объект</p>
+      </div>
+      <div class="auth-box">
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">Войти</button>
+          <button class="auth-tab" data-tab="register">Регистрация</button>
+        </div>
+        <!-- Login -->
+        <div class="form-panel active" id="panel-login">
+          <div class="input-group">
+            <label>Email</label>
+            <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
+          </div>
+          <div class="input-group">
+            <label>Пароль</label>
+            <div class="password-input-wrap">
+              <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+              <button class="password-toggle" type="button">
+                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off-icon" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-login">Войти в аккаунт</button>
+        </div>
+        <!-- Register -->
+        <div class="form-panel" id="panel-register">
+          <div class="input-group">
+            <label>Имя</label>
+            <input type="text" id="reg-name" placeholder="Ваше имя" autocomplete="name">
+          </div>
+          <div class="input-group">
+            <label>Email</label>
+            <input type="email" id="reg-email" placeholder="your@email.com" autocomplete="email">
+          </div>
+          <div class="input-group">
+            <label>Пароль</label>
+            <div class="password-input-wrap">
+              <input type="password" id="reg-pass" placeholder="Минимум 6 символов" autocomplete="new-password">
+              <button class="password-toggle" type="button">
+                <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off-icon" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-register">Создать аккаунт</button>
+        </div>
+      </div>
+      <div class="auth-footer">
+        <p>Защищено шифрованием. Авторизуясь, вы принимаете условия оферты.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ HOME ══════════════ -->
+  <div class="screen home-screen" id="screen-home">
+    <div class="home-header">
+      <div class="header-user">
+        <span class="greeting">Привет,</span>
+        <h1 id="home-username">Пользователь</h1>
+      </div>
+    </div>
+    <div class="home-scroll">
+      <!-- Промо -->
+      <div class="promo-card" id="promo-to-calc">
+        <span class="promo-tag">🎯 Бесплатный расчёт</span>
+        <h3>Подберём систему за 2 минуты</h3>
+        <p>Введите площадь объекта — рассчитаем количество камер, метраж кабеля и стоимость под ключ</p>
+        <button class="btn-promo">Рассчитать сейчас →</button>
+        <div class="promo-bg-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+        </div>
+      </div>
+
+      <!-- Пакеты превью -->
+      <div class="section-title" style="margin-bottom:14px;">Наши пакеты</div>
+      <div class="kits-grid">
+        <div class="kit-card" style="cursor:pointer;" id="home-pkg-budget">
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0d2b1a,#0a1a10);color:#00ff94;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="kit-info">
+            <h4>💚 Эконом</h4>
+            <p>Базовая защита. Камеры 720p, надёжный регистратор</p>
+            <div class="kit-footer">
+              <span class="kit-price" style="color:#00ff94;">от 8 900 ₽</span>
+              <button class="kit-add-btn">Рассчитать</button>
+            </div>
+          </div>
+        </div>
+        <div class="kit-card" style="cursor:pointer;" id="home-pkg-standard">
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0d2233,#081420);color:#00d4ff;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+          </div>
+          <div class="kit-info">
+            <h4>🔵 Стандарт</h4>
+            <p>Hikvision 1080p, PoE, удалённый доступ</p>
+            <div class="kit-footer">
+              <span class="kit-price">от 18 500 ₽</span>
+              <button class="kit-add-btn">Рассчитать</button>
+            </div>
+          </div>
+        </div>
+        <div class="kit-card" style="cursor:pointer;" id="home-pkg-premium">
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#2a1f00,#1a1200);color:#ffd700;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div class="kit-info">
+            <h4>🟡 Премиум</h4>
+            <p>4K, AI-аналитика, профессиональный монтаж</p>
+            <div class="kit-footer">
+              <span class="kit-price" style="color:#ffd700;">от 38 000 ₽</span>
+              <button class="kit-add-btn">Рассчитать</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CALCULATOR ══════════════ -->
+  <div class="screen" id="screen-calculator" style="padding-bottom:100px;">
+    <div class="screen-header">
+      <h2>Калькулятор системы</h2>
+    </div>
+
+    <!-- Прогресс -->
+    <div class="step-progress">
+      <div class="step-dot active" id="dot-1"><div class="step-dot-circle">1</div><span>Объект</span></div>
+      <div class="step-dot" id="dot-2"><div class="step-dot-circle">2</div><span>Пакет</span></div>
+      <div class="step-dot" id="dot-3"><div class="step-dot-circle">3</div><span>Итог</span></div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;" id="calc-scroll">
+
+      <!-- ШАГ 1 — Площадь и тип -->
+      <div class="calc-step constructor-step active" id="calc-step-1">
+        <div class="step-title">Площадь вашего объекта</div>
+        <div class="qty-selector-wrap" style="margin-bottom:20px;">
+          <div class="input-group" style="margin-bottom:16px;">
+            <label>Введите площадь в м²</label>
+            <input type="number" id="area-input" placeholder="Например: 150" min="10" max="5000"
+              style="font-size:22px;font-weight:700;font-family:var(--font-display);text-align:center;">
+          </div>
+          <div class="qty-hints">
+            <span class="area-hint qty-hint" data-val="50">50 м²</span>
+            <span class="area-hint qty-hint" data-val="100">100 м²</span>
+            <span class="area-hint qty-hint" data-val="200">200 м²</span>
+            <span class="area-hint qty-hint" data-val="500">500 м²</span>
+          </div>
+        </div>
+
+        <div class="step-title">Где будут установлены камеры?</div>
+        <div class="camera-types">
+          <div class="camera-type-card cam-type-card" data-type="indoor">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div class="card-title">🏠 Внутри помещения</div>
+            <div class="card-desc">Офис, склад, магазин, квартира. 1 камера ≈ 20 м², угол 104°.</div>
+          </div>
+          <div class="camera-type-card cam-type-card" data-type="outdoor">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            </div>
+            <div class="card-title">🏢 Периметр/улица</div>
+            <div class="card-desc">Территория, парковка, забор. Расчёт по периметру, 1 камера ≈ 15м.</div>
+          </div>
+          <div class="camera-type-card cam-type-card" data-type="mixed">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            </div>
+            <div class="card-title">🏗 Смешанный</div>
+            <div class="card-desc">И внутри и снаружи. Оптимальная расстановка по объекту.</div>
+          </div>
+        </div>
+        <div class="step-footer-actions" style="margin-top:28px;">
+          <button class="btn btn-primary" id="btn-calc1-next">Продолжить →</button>
+        </div>
+      </div>
+
+      <!-- ШАГ 2 — Пакет -->
+      <div class="calc-step constructor-step" id="calc-step-2">
+        <div class="step-title">Выберите пакет оборудования</div>
+        <div id="pkg-preview"></div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
+          <!-- Эконом -->
+          <div class="pkg-card camera-type-card" data-pkg="budget" style="border-left: 3px solid #00ff94;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div class="card-icon" style="background:rgba(0,255,148,0.1);color:#00ff94;flex-shrink:0;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div>
+                <div style="font-family:var(--font-display);font-size:16px;font-weight:700;">💚 Эконом</div>
+                <div style="font-size:11px;background:rgba(0,255,148,0.15);color:#00ff94;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:2px;">БЮДЖЕТНЫЙ</div>
+              </div>
+            </div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">Базовая защита. Камеры OEM 720p, регистратор AHD.</div>
+            <div style="font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">📷 720p</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">🔌 Кабель UTP</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">🔧 1 500₽/точка</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">💾 1ТБ HDD</span>
+            </div>
+          </div>
+
+          <!-- Стандарт -->
+          <div class="pkg-card camera-type-card" data-pkg="standard" style="border-left: 3px solid #00d4ff;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div class="card-icon" style="flex-shrink:0;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+              </div>
+              <div>
+                <div style="font-family:var(--font-display);font-size:16px;font-weight:700;">🔵 Стандарт</div>
+                <div style="font-size:11px;background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:20px;display:inline-block;margin-top:2px;">⭐ ПОПУЛЯРНЫЙ</div>
+              </div>
+            </div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">Hikvision/Dahua 1080p. Оптимальное соотношение цены и качества.</div>
+            <div style="font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">📷 1080p</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">⚡ PoE</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">🔧 2 500₽/точка</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">💾 2ТБ HDD</span>
+            </div>
+          </div>
+
+          <!-- Премиум -->
+          <div class="pkg-card camera-type-card" data-pkg="premium" style="border-left: 3px solid #ffd700;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div class="card-icon" style="background:rgba(255,215,0,0.1);color:#ffd700;flex-shrink:0;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </div>
+              <div>
+                <div style="font-family:var(--font-display);font-size:16px;font-weight:700;">🟡 Премиум</div>
+                <div style="font-size:11px;background:rgba(255,215,0,0.1);color:#ffd700;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:2px;">ПРОФЕССИОНАЛЬНЫЙ</div>
+              </div>
+            </div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">Hikvision Pro / Axis. 4K, AI-аналитика, монтаж под ключ.</div>
+            <div style="font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">📷 4K 8МП</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">🤖 AI-детекция</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">🔧 4 000₽/точка</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">💾 4ТБ HDD</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Доп. опции -->
+        <div class="step-title" style="margin-top:24px;">Дополнительные опции</div>
+        <div class="options-list">
+          <div class="checkbox-row option-checkbox" data-option="soundRecord">
+            <div class="custom-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="checkbox-body">
+              <div class="checkbox-title">🎤 Запись звука</div>
+              <div class="checkbox-desc">Микрофоны с шумоподавлением, синхронная запись с видео.</div>
+            </div>
+          </div>
+          <div class="checkbox-row option-checkbox" data-option="motionDetect">
+            <div class="custom-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="checkbox-body">
+              <div class="checkbox-title">🤖 AI-детекция движения</div>
+              <div class="checkbox-desc">Push-уведомления, распознавание людей и авто.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-footer-actions dual" style="margin-top:28px;">
+          <button class="btn btn-secondary" id="btn-calc2-back">← Назад</button>
+          <button class="btn btn-primary" id="btn-calc2-next">Рассчитать →</button>
+        </div>
+      </div>
+
+      <!-- ШАГ 3 — Результат -->
+      <div class="calc-step constructor-step" id="calc-step-3">
+        <div class="step-title">Спецификация и стоимость</div>
+        <div class="compat-results-list" id="result-items"></div>
+        <div class="total-card" id="result-summary" style="margin-bottom:20px;"></div>
+
+        <!-- Успех после заказа -->
+        <div class="order-success" id="order-success">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h3>Заявка отправлена!</h3>
+          <p>Наш менеджер получил спецификацию и свяжется с вами в Telegram в течение 10 минут.</p>
+          <div class="order-number-badge" id="order-id-display">#000000</div>
+          <button class="btn btn-secondary" id="btn-new-order" style="margin-top:12px;width:100%;">Новый расчёт</button>
+        </div>
+
+        <div class="step-footer-actions dual">
+          <button class="btn btn-secondary" id="btn-calc3-back">← Назад</button>
+          <button class="btn btn-accent" id="btn-calc3-order">
+            📩 Отправить заявку
+          </button>
+        </div>
+      </div>
+
+    </div><!-- end calc-scroll -->
+  </div>
+
+  <!-- ══════════════ PROFILE ══════════════ -->
+  <div class="screen profile-screen" id="screen-profile">
+    <div class="screen-header"><h2>Профиль</h2></div>
+
+    <div class="profile-view-wrap" id="profile-main-view">
+      <div class="profile-hero">
+        <div class="profile-avatar">
+          <span id="profile-initials">П</span>
+          <div class="profile-avatar-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+        </div>
+        <h3 class="profile-name" id="profile-display-name">Загрузка...</h3>
+        <p class="profile-email" id="profile-display-email">...</p>
+      </div>
+
+      <div class="profile-stats">
+        <div class="stat-card">
+          <div class="stat-num" id="profile-stat-orders">0</div>
+          <div class="stat-label">Заявок отправлено</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" style="color:var(--accent-2);font-size:16px;">GAZE Pro</div>
+          <div class="stat-label">Статус клиента</div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-bottom:12px;">⚠️ Заполните для заявки</div>
+      <div class="profile-menu">
+        <div class="profile-row" id="btn-edit-profile">
+          <div class="profile-row-content">
+            <span class="profile-row-label">ФИО</span>
+            <span class="profile-row-value" id="profile-row-name">—</span>
+          </div>
+          <div class="profile-row-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-row">
+          <div class="profile-row-content">
+            <span class="profile-row-label">Email</span>
+            <span class="profile-row-value" id="profile-row-email">—</span>
+          </div>
+        </div>
+        <div class="profile-row" id="btn-edit-profile-2">
+          <div class="profile-row-content">
+            <span class="profile-row-label">📱 Телефон (обязательно!)</span>
+            <span class="profile-row-value placeholder" id="profile-row-phone">Не указан — нажмите чтобы добавить</span>
+          </div>
+          <div class="profile-row-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-row" id="btn-edit-profile-3">
+          <div class="profile-row-content">
+            <span class="profile-row-label">📍 Адрес объекта</span>
+            <span class="profile-row-value placeholder" id="profile-row-address">Не указан</span>
+          </div>
+          <div class="profile-row-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+      </div>
+
+      <button class="logout-btn" id="btn-logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Выйти из аккаунта
+      </button>
+    </div>
+
+    <div class="profile-view-wrap" id="profile-edit-view" style="display:none;">
+      <div class="edit-header">
+        <button class="back-btn" id="btn-edit-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h3 class="edit-title">Редактировать профиль</h3>
+      </div>
+      <div class="profile-edit-form" style="margin-top:20px;">
+        <div class="input-group">
+          <label>ФИО</label>
+          <input type="text" id="edit-name" autocomplete="name" placeholder="Иванов Иван Иванович">
+        </div>
+        <div class="input-group">
+          <label>📱 Телефон (обязателен для заявки)</label>
+          <input type="tel" id="edit-phone" placeholder="+7 (999) 000-00-00" autocomplete="tel">
+        </div>
+        <div class="input-group">
+          <label>📍 Адрес объекта</label>
+          <input type="text" id="edit-address" placeholder="Москва, ул. Примерная, д. 1">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-save-profile" style="margin-top:24px;">Сохранить</button>
+    </div>
+  </div>
+
+  <!-- ══════════════ NAV ══════════════ -->
+  <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+    <button class="nav-item" data-screen="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Главная</span>
+    </button>
+    <button class="nav-item" data-screen="calculator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+      <span>Расчёт</span>
+    </button>
+    <button class="nav-item" data-screen="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Профиль</span>
+    </button>
+  </nav>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="storage.js"></script>
+<script src="telegram.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
