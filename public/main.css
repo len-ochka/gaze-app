@@ -523,31 +523,6 @@ img { max-width: 100%; display: block; }
   margin-bottom: 16px;
 }
 
-.total-card {
-  background: var(--bg-card);
-  border: 1px solid rgba(0,212,255,0.15);
-  border-radius: var(--r-lg);
-  padding: 16px;
-  margin-bottom: 16px;
-}
-.total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.total-row:last-child { margin-bottom: 0; }
-.total-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-.total-value { font-family: var(--font-display); font-size: 15px; font-weight: 700; }
-.total-final .total-value { font-size: 22px; color: var(--text-primary); }
-
-/* Order success */
-.order-number-badge {
-  background: var(--bg-secondary);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--r-full);
-  font-family: monospace;
-  font-size: 14px; font-weight: 700;
-  letter-spacing: 2px;
-  padding: 8px 20px;
-  margin-top: 4px;
-}
-
 /* Guide badge */
 .guide-badge {
   display: inline-flex; align-items: center; justify-content: center;
