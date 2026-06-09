@@ -69,20 +69,52 @@
   box-shadow: 0 0 0 2px var(--accent);
 }
 
-/* ─── ORDER SUCCESS ──────────────────────────────────────────────────────────── */
-.order-success h3 {
-  font-family: var(--font-display);
-  font-size: 20px; font-weight: 700;
-  margin-bottom: 8px;
-}
-.order-success p {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  margin-bottom: 14px;
+/* ─── TOTAL CARD ─────────────────────────────────────────────────────────────── */
+.total-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(0,212,255,0.15);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin-bottom: 16px;
 }
 
-/* ─── TOTAL CARD VARIANTS ────────────────────────────────────────────────────── */
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.total-row:last-child { margin-bottom: 0; }
+
+.total-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.total-value {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.total-final {
+  border-top: 1px solid var(--glass-border);
+  padding-top: 12px;
+  margin-top: 8px;
+}
+.total-final .total-value {
+  font-size: 24px;
+  color: var(--text-primary);
+}
+.total-final .total-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
 .total-card.gold {
   border-color: rgba(255,215,0,0.25);
   background: rgba(255,215,0,0.03);
