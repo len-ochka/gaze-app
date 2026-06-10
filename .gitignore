@@ -1,4 +1,0 @@
-node_modules/
-.env
-*.sqlite*
-server_output.log
