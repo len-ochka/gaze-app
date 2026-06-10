@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#080c14">
+  <title>GAZE — Системы видеонаблюдения</title>
+  <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="profile.css">
+  <link rel="stylesheet" href="constructor.css">
+  <link rel="stylesheet" href="cart.css">
+  <link rel="stylesheet" href="extra.css">
+  <link rel="stylesheet" href="animations.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=YOUR_API_KEY" type="text/javascript"></script>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- ══════════════ LANDING ══════════════ -->
+  <div class="screen landing-screen active" id="screen-landing">
+    <div class="landing-content">
+      <div class="landing-hero animate-in">
+        <div class="auth-logo-wrap">
+          <svg class="auth-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+          <h2>GAZE</h2>
+        </div>
+        <h1>Ваша безопасность — наша миссия</h1>
+        <p>Профессиональные системы видеонаблюдения под ключ. Расчёт за 2 минуты.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:280px;margin:0 auto;">
+          <button class="btn btn-primary" id="btn-landing-start">Начать →</button>
+          <button class="btn btn-secondary" id="btn-landing-guest" style="font-size:14px;border-color:rgba(255,255,255,0.15);">👁 Продолжить как гость</button>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.5;">Гости могут рассчитать стоимость,<br>но не могут оформлять заказы.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ AUTH ══════════════ -->
+  <div class="screen auth-screen" id="screen-auth">
+    <div class="auth-bg">
+      <div class="auth-bg-orb auth-bg-orb-1"></div>
+      <div class="auth-bg-orb auth-bg-orb-2"></div>
+    </div>
+    <div class="auth-content">
+      <div class="auth-hero">
+        <div class="auth-logo-wrap">
+          <svg class="auth-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+          <h2>GAZE</h2>
+        </div>
+        <p>Умный подбор и монтаж систем видеонаблюдения под ваш объект</p>
+      </div>
+      <div class="auth-box">
+        <div style="text-align: center; padding: 20px;">
+          <div class="success-icon" style="background: var(--accent-dim); color: var(--accent); margin: 0 auto 20px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <h3 style="margin-bottom: 10px;">Вход через Telegram</h3>
+          <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">Приложение работает только внутри Telegram Web App для обеспечения безопасности ваших данных.</p>
+          <div id="auth-status" style="margin-top: 20px; font-size: 12px; color: var(--accent); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">Ожидание авторизации...</div>
+          <button id="btn-auth-retry" class="btn btn-secondary" style="display: none; margin-top: 20px; width: 100%;">Повторить вход</button>
+        </div>
+      </div>
+      <div class="auth-footer">
+        <button id="btn-guest-enter" class="btn btn-secondary" style="width:100%; margin-bottom:16px; border-color:rgba(255,255,255,0.2); font-size:14px;">
+          👁 Продолжить как гость
+        </button>
+        <p style="font-size:11px; color:var(--text-muted); line-height:1.5;">
+          Гости могут рассчитать стоимость, но не могут оформлять заказы.<br>
+          <a href="#" id="btn-guest-link-tg" style="color:var(--accent);">Войти через Telegram →</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ HOME ══════════════ -->
+  <div class="screen home-screen" id="screen-home">
+    <div class="home-header">
+      <div class="header-user">
+        <span class="greeting">Привет,</span>
+        <h1 id="home-username">Пользователь</h1>
+      </div>
+      <div id="conn-status" style="font-size:11px; display:flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; border:1px solid; cursor:pointer; position:relative;">
+        <span id="conn-status-text">...</span>
+        <!-- Unread badge -->
+        <span id="unread-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--accent);color:#000;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;align-items:center;justify-content:center;"></span>
+      </div>
+    </div>
+    <div class="home-scroll">
+      <!-- Промо -->
+      <div class="promo-card" id="promo-to-calc">
+        <span class="promo-tag">🎯 Бесплатный расчёт</span>
+        <h3>Подберём систему за 2 минуты</h3>
+        <p>Введите площадь объекта — рассчитаем количество камер, метраж кабеля и стоимость под ключ</p>
+        <button class="btn-promo">Рассчитать сейчас →</button>
+        <div class="promo-bg-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+        </div>
+      </div>
+
+      <!-- Пакеты превью -->
+      <div class="section-title" style="margin-bottom:14px;">Наши пакеты</div>
+      <div class="kits-grid">
+        <div class="kit-card" style="cursor:pointer;" id="home-pkg-budget">
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0a1a12,#050a08); color:var(--accent-2);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          </div>
+          <div class="kit-info">
+            <h4>ЭКОНОМ</h4>
+            <p>Прагматичный выбор. Надежность без переплат.</p>
+            <div class="kit-footer">
+              <span class="kit-price" style="color:var(--accent-2);">от 8 900 ₽</span>
+              <button class="kit-add-btn">ВЫБРАТЬ</button>
+            </div>
+          </div>
+        </div>
+        <div class="kit-card" style="cursor:pointer;" id="home-pkg-standard">
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#0a161a,#05080a); color:var(--accent);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          </div>
+          <div class="kit-info">
+            <h4>СТАНДАРТ</h4>
+            <p>Золотая середина. Идеальный баланс четкости.</p>
+            <div class="kit-footer">
+              <span class="kit-price" style="color:var(--accent);">от 18 500 ₽</span>
+              <button class="kit-add-btn">ВЫБРАТЬ</button>
+            </div>
+          </div>
+        </div>
+        <div class="kit-card" style="cursor:pointer;" id="home-pkg-premium">
+          <div class="kit-image-stub" style="background:linear-gradient(135deg,#1a160a,#0a0805); color:var(--accent-gold);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div class="kit-info">
+            <h4>ПРЕМИУМ</h4>
+            <p>Бескомпромиссное 4K. Видеть всё до мелочей.</p>
+            <div class="kit-footer">
+              <span class="kit-price" style="color:var(--accent-gold);">от 38 000 ₽</span>
+              <button class="kit-add-btn">ВЫБРАТЬ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Отзывы -->
+      <div class="section-title" style="margin:20px 0 14px;">⭐ Отзывы клиентов</div>
+      <div id="home-reviews-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        <div style="text-align:center;color:var(--text-muted);font-size:13px;padding:12px;">Загрузка...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CALCULATOR ══════════════ -->
+  <div class="screen" id="screen-calculator" style="padding-bottom:100px;">
+    <div class="screen-header">
+      <h2>Калькулятор системы</h2>
+    </div>
+
+    <div class="step-progress">
+      <div class="step-dot active" id="dot-1"><div class="step-dot-circle">1</div><span>Объект</span></div>
+      <div class="step-dot" id="dot-2"><div class="step-dot-circle">2</div><span>Пакет</span></div>
+      <div class="step-dot" id="dot-3"><div class="step-dot-circle">3</div><span>Итог</span></div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;" id="calc-scroll">
+
+      <!-- ШАГ 1 -->
+      <div class="calc-step constructor-step active" id="calc-step-1">
+        <div class="step-title">Площадь вашего объекта</div>
+        <div class="qty-selector-wrap" style="margin-bottom:20px;">
+          <div class="input-group" style="margin-bottom:16px;">
+            <label>Введите площадь в м²</label>
+            <input type="number" id="area-input" placeholder="Например: 150" min="10" max="5000"
+              style="font-size:22px;font-weight:700;font-family:var(--font-display);text-align:center;">
+          </div>
+          <div class="qty-hints">
+            <span class="area-hint qty-hint" data-val="50">50 м²</span>
+            <span class="area-hint qty-hint" data-val="100">100 м²</span>
+            <span class="area-hint qty-hint" data-val="200">200 м²</span>
+            <span class="area-hint qty-hint" data-val="500">500 м²</span>
+          </div>
+        </div>
+
+        <div class="step-title">Где будут установлены камеры?</div>
+        <div class="camera-types">
+          <div class="camera-type-card cam-type-card" data-type="indoor">
+            <div class="card-icon">
+              <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26">
+                <ellipse cx="16" cy="10" rx="10" ry="5"/>
+                <path d="M6 10 Q6 24 16 26 Q26 24 26 10"/>
+                <line x1="16" y1="14" x2="16" y2="26"/>
+              </svg>
+            </div>
+            <div class="card-title">ВНУТРИ</div>
+            <div class="card-desc">Купол. Широкий угол, незаметен.</div>
+          </div>
+          <div class="camera-type-card cam-type-card" data-type="outdoor">
+            <div class="card-icon">
+              <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26">
+                <rect x="4" y="12" width="18" height="8" rx="3"/>
+                <circle cx="26" cy="16" r="4"/>
+                <line x1="22" y1="16" x2="26" y2="16"/>
+                <path d="M10 12 L10 9 Q10 7 12 7 L14 7 Q16 7 16 9 L16 12"/>
+              </svg>
+            </div>
+            <div class="card-title">СНАРУЖИ</div>
+            <div class="card-desc">Bullet. IP67, мощная ИК-подсветка.</div>
+          </div>
+          <div class="camera-type-card cam-type-card" data-type="mixed">
+            <div class="card-icon">
+              <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" width="26" height="26">
+                <ellipse cx="10" cy="10" rx="6" ry="3"/>
+                <path d="M4 10 Q4 18 10 20 Q16 18 16 10"/>
+                <rect x="18" y="14" width="10" height="6" rx="2"/>
+                <circle cx="30" cy="17" r="2.5"/>
+              </svg>
+            </div>
+            <div class="card-title">КОМБИ</div>
+            <div class="card-desc">Купол + Bullet. Полный контроль.</div>
+          </div>
+        </div>
+        <div class="step-footer-actions" style="margin-top:28px;">
+          <button class="btn btn-primary" id="btn-calc1-next">Продолжить →</button>
+        </div>
+      </div>
+
+      <!-- ШАГ 2 -->
+      <div class="calc-step constructor-step" id="calc-step-2">
+        <div class="step-title">Выберите пакет <span class="guide-badge" id="btn-show-guide">?</span></div>
+        <div id="visual-guide" class="visual-guide-panel" style="display:none; margin-bottom: 15px;">
+          <div style="font-size: 13px; line-height: 1.5;">
+            <p style="margin-bottom:8px;">💡 <b>Коротко о главном:</b></p>
+            <ul style="list-style: none; padding-left: 0;">
+              <li style="margin-bottom:5px;">📷 <b>Разрешение:</b> Чем выше, тем четче картинка и больше деталей при зуме.</li>
+              <li style="margin-bottom:5px;">📐 <b>Угол обзора:</b> 90° узко/далеко. 110° — широкий охват.</li>
+              <li style="margin-bottom:5px;">🖥️ <b>NVR:</b> Мозги системы — хранит записи и дает удалённый доступ.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div id="pkg-preview"></div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
+          <div class="pkg-card camera-type-card" data-pkg="budget" style="border-left: 3px solid #00ff94;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div class="card-icon cam-type-icon" style="background:rgba(0,255,148,0.1);color:#00ff94;flex-shrink:0;">
+                <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22"><rect x="4" y="12" width="18" height="8" rx="3"/><circle cx="26" cy="16" r="4"/></svg>
+              </div>
+              <div>
+                <div style="font-family:var(--font-display);font-size:16px;font-weight:700;">Эконом</div>
+                <div style="font-size:11px;background:rgba(0,255,148,0.15);color:#00ff94;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:2px;">БЮДЖЕТНЫЙ</div>
+              </div>
+            </div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">Базовая защита. Камеры OEM 720p, регистратор AHD.</div>
+            <div style="font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">📷 720p</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">🔌 UTP</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">💾 1ТБ HDD</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">🗓 7 дней</span>
+            </div>
+          </div>
+
+          <div class="pkg-card camera-type-card" data-pkg="standard" style="border-left: 3px solid #00d4ff;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div class="card-icon cam-type-icon" style="flex-shrink:0;">
+                <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22"><rect x="4" y="12" width="18" height="8" rx="3"/><circle cx="26" cy="16" r="4"/></svg>
+              </div>
+              <div>
+                <div style="font-family:var(--font-display);font-size:16px;font-weight:700;">Стандарт</div>
+                <div style="font-size:11px;background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:20px;display:inline-block;margin-top:2px;">⭐ ПОПУЛЯРНЫЙ</div>
+              </div>
+            </div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">Hikvision/Dahua 1080p. Оптимальное соотношение цены и качества.</div>
+            <div style="font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">📷 1080p</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">⚡ PoE</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">💾 2ТБ HDD</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">🗓 14 дней</span>
+            </div>
+          </div>
+
+          <div class="pkg-card camera-type-card" data-pkg="premium" style="border-left: 3px solid #ffd700;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div class="card-icon cam-type-icon" style="background:rgba(255,215,0,0.1);color:#ffd700;flex-shrink:0;">
+                <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22"><rect x="4" y="12" width="18" height="8" rx="3"/><circle cx="26" cy="16" r="4"/></svg>
+              </div>
+              <div>
+                <div style="font-family:var(--font-display);font-size:16px;font-weight:700;">Премиум</div>
+                <div style="font-size:11px;background:rgba(255,215,0,0.1);color:#ffd700;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:2px;">ПРОФЕССИОНАЛЬНЫЙ</div>
+              </div>
+            </div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px;">Hikvision Pro / Axis. 4K, AI-аналитика, монтаж под ключ.</div>
+            <div style="font-size:12px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">📷 4K 8МП</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">🤖 AI-детекция</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">💾 4ТБ HDD</span>
+              <span style="background:var(--bg-secondary);padding:3px 8px;border-radius:6px;">🗓 30 дней</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="options-list" style="margin-top:20px;">
+          <div class="checkbox-row option-checkbox" data-option="soundRecord">
+            <div class="custom-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="checkbox-body">
+              <div class="checkbox-title">🎤 Запись звука</div>
+              <div class="checkbox-desc">Микрофоны с шумоподавлением.</div>
+            </div>
+          </div>
+          <div class="checkbox-row option-checkbox" data-option="hasInternet">
+            <div class="custom-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="checkbox-body">
+              <div class="checkbox-title">🌐 Нужен интернет на объекте</div>
+              <div class="checkbox-desc">4G-роутер + антенна для удаленного доступа.</div>
+            </div>
+          </div>
+          <div id="internet-operators-panel" style="display:none; margin-top:12px; padding:14px; background:var(--bg-card); border:1px solid var(--glass-border); border-radius:14px;">
+            <div style="font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text-secondary);">Выберите провайдера:</div>
+            <div id="operators-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+          <div class="checkbox-row option-checkbox" data-option="maintenance">
+            <div class="custom-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="checkbox-body">
+              <div class="checkbox-title">🛠️ Техническое обслуживание</div>
+              <div class="checkbox-desc">Ежемесячный выезд инженера, чистка камер.</div>
+            </div>
+          </div>
+          <div class="checkbox-row option-checkbox" data-option="ups">
+            <div class="custom-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="checkbox-body">
+              <div class="checkbox-title">🔋 ИБП (бесперебойник)</div>
+              <div class="checkbox-desc">Защита от отключений питания. Работа 2-4 часа.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-footer-actions dual" style="margin-top:28px;">
+          <button class="btn btn-secondary" id="btn-calc2-back">← Назад</button>
+          <button class="btn btn-primary" id="btn-calc2-next">Рассчитать →</button>
+        </div>
+      </div>
+
+      <!-- ШАГ 3 — Результат -->
+      <div class="calc-step constructor-step" id="calc-step-3">
+        <div class="step-title" style="padding-left: 20px;">Спецификация и стоимость</div>
+        <div class="compat-results-list" id="result-items"></div>
+        <div class="total-card" id="result-summary" style="margin-bottom:10px;"></div>
+
+        <!-- Промокод -->
+        <div id="promo-section" style="margin:0 20px 16px; padding:14px; background:var(--bg-card); border:1px solid var(--glass-border); border-radius:14px;">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">🎟️ Промокод</div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="promo-input" placeholder="Введите промокод" style="flex:1;text-transform:uppercase;letter-spacing:1px;font-size:13px;">
+            <button id="btn-apply-promo" style="background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);border-radius:10px;padding:0 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Применить</button>
+          </div>
+          <div id="promo-result" style="font-size:12px;margin-top:6px;display:none;"></div>
+        </div>
+
+        <div style="font-size: 11px; color: var(--text-muted); background: rgba(255,255,255,0.03); padding: 10px; margin:0 20px 15px; border-radius: 8px; line-height: 1.4; border: 1px dashed var(--glass-border);">
+          ⚠️ <b>Важно:</b> Расчёт предварительный. Окончательная стоимость формируется после выезда инженера.
+        </div>
+
+        <div class="price-disclaimer">Цены актуальны для г. Москва и МО на 2026 год.</div>
+
+        <!-- Успех -->
+        <div class="order-success" id="order-success">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h3>Заявка отправлена!</h3>
+          <p>Наш менеджер получил спецификацию и свяжется с вами в Telegram в течение 10 минут.</p>
+          <div class="order-number-badge" id="order-id-display">#000000</div>
+          <!-- Форма отзыва после заказа -->
+          <div id="review-prompt" style="margin-top:16px;padding:14px;background:var(--bg-card);border:1px solid var(--glass-border);border-radius:14px;text-align:left;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Оцените ваш опыт взаимодействия:</div>
+            <div id="star-rating" style="display:flex;gap:8px;margin-bottom:12px;justify-content:center;">
+              <span class="star-btn" data-rating="1" style="font-size:28px;cursor:pointer;opacity:0.4;">⭐</span>
+              <span class="star-btn" data-rating="2" style="font-size:28px;cursor:pointer;opacity:0.4;">⭐</span>
+              <span class="star-btn" data-rating="3" style="font-size:28px;cursor:pointer;opacity:0.4;">⭐</span>
+              <span class="star-btn" data-rating="4" style="font-size:28px;cursor:pointer;opacity:0.4;">⭐</span>
+              <span class="star-btn" data-rating="5" style="font-size:28px;cursor:pointer;opacity:0.4;">⭐</span>
+            </div>
+            <textarea id="review-text" placeholder="Напишите отзыв (необязательно)..." rows="2" style="width:100%;background:var(--bg-primary);color:white;border:1px solid var(--glass-border);border-radius:10px;padding:8px 12px;font-size:13px;resize:none;box-sizing:border-box;"></textarea>
+            <button id="btn-submit-review" class="btn btn-secondary" style="margin-top:10px;width:100%;font-size:13px;" disabled>Отправить отзыв</button>
+          </div>
+          <button class="btn btn-secondary" id="btn-new-order" style="margin-top:12px;width:100%;">Новый расчёт</button>
+        </div>
+
+        <div style="margin-top:16px; margin-bottom:8px;">
+          <button class="btn btn-secondary" id="btn-pro-mode" style="border-color:rgba(0,212,255,0.3); color:var(--accent); font-size:13px;">
+            🔧 Для профи — выбрать оборудование вручную
+          </button>
+        </div>
+
+        <div id="pro-mode-panel" style="display:none; margin-top:20px;">
+          <div class="section-title" style="margin-bottom:20px; display:flex; align-items:center; gap:8px;">
+            <span style="color:var(--accent-gold)">✧</span> Ручной подбор <span style="color:var(--accent-gold)">✧</span>
+          </div>
+          <div class="pro-tabs" style="display:flex; gap:10px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px;">
+            <button class="pro-tab active" data-pro-cat="camera">📷 Камеры</button>
+            <button class="pro-tab" data-pro-cat="dvr">📼 NVR</button>
+            <button class="pro-tab" data-pro-cat="hdd">💾 Диски</button>
+          </div>
+          <div id="pro-cat-content">
+            <div class="pro-cat-pane active" id="pro-cat-camera">
+              <div style="display:flex; flex-direction:column; gap:10px;" id="pro-cameras-list"></div>
+            </div>
+            <div class="pro-cat-pane" id="pro-cat-dvr" style="display:none;">
+              <div style="display:flex; flex-direction:column; gap:10px;" id="pro-dvr-list"></div>
+            </div>
+            <div class="pro-cat-pane" id="pro-cat-hdd" style="display:none;">
+              <div style="display:flex; flex-direction:column; gap:10px;" id="pro-hdd-list"></div>
+            </div>
+          </div>
+          <div class="total-card" id="pro-total-card" style="margin-top:24px; margin-bottom:20px; border-color:var(--accent-gold); background:rgba(194, 166, 126, 0.05);">
+            <div class="total-row">
+              <span class="total-label" style="color:var(--text-muted)">КОЛ-ВО КАМЕР</span>
+              <span class="total-value" id="pro-cam-qty" style="color:var(--accent-gold);font-size:15px;">1</span>
+            </div>
+            <div class="total-row total-final">
+              <span class="total-label" style="color:var(--accent-gold)">СУММА ПОДБОРА</span>
+              <span class="total-value" id="pro-total-price" style="color:var(--accent-gold)">0 ₽</span>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-pro-add-to-cart" style="background:var(--accent-gold); border-color:rgba(255,255,255,0.1)">
+            🛒 Добавить в спецификацию
+          </button>
+        </div>
+
+        <div class="step-footer-actions dual">
+          <button class="btn btn-secondary" id="btn-calc3-back">← Назад</button>
+          <button class="btn btn-accent" id="btn-calc3-order">📩 Отправить заявку</button>
+        </div>
+      </div>
+
+    </div><!-- end calc-scroll -->
+  </div>
+
+  <!-- ══════════════ SUPPORT CHAT ══════════════ -->
+  <div class="screen support-screen" id="screen-support">
+    <div class="screen-header"><h2>Чат поддержки</h2></div>
+    <div id="engineer-card" style="background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(0,255,148,0.05));border:1px solid rgba(0,212,255,0.2);border-radius:16px;padding:16px;margin:20px;margin-bottom:0;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;">👷</div>
+        <div>
+          <div style="font-weight:700;font-size:15px;">Инженер на связи</div>
+          <div style="font-size:12px;color:var(--text-secondary);">Ответим в течение 15 минут</div>
+        </div>
+        <div style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--accent-2);box-shadow:0 0 6px var(--accent-2);"></div>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:0;">Задайте любой вопрос по заказу — уточним детали, согласуем время монтажа.</p>
+    </div>
+    <div id="support-chat-messages" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:10px;">
+      <div class="chat-msg system">Здравствуйте! Чем мы можем помочь?</div>
+    </div>
+    <div class="chat-input-wrap" style="padding:15px; background:var(--bg-card); display:flex; gap:10px;">
+      <input type="text" id="support-input" placeholder="Введите сообщение..." style="flex:1; background:transparent; color:white; border:1px solid var(--glass-border); border-radius:20px; padding:10px 15px;">
+      <button class="btn-send" id="btn-send-support" style="background:var(--accent); color:var(--bg-primary); border:none; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════ ADMIN PANEL ══════════════ -->
+  <div class="screen admin-screen" id="screen-admin">
+    <div class="screen-header"><h2>Админ-панель</h2></div>
+
+    <div class="admin-tabs" style="display:flex; gap:8px; margin-bottom:16px; padding:0 20px; overflow-x:auto; padding-bottom:4px; flex-shrink:0;">
+      <button class="admin-tab active" data-tab="stats">📊 Стат.</button>
+      <button class="admin-tab" data-tab="orders">📦 Заказы</button>
+      <button class="admin-tab" data-tab="users">👥 Клиенты</button>
+      <button class="admin-tab" data-tab="prices">💰 Цены</button>
+      <button class="admin-tab" data-tab="promo">🎟️ Промо</button>
+      <button class="admin-tab" data-tab="broadcast">📢 Рассылка</button>
+      <button class="admin-tab" data-tab="reviews">⭐ Отзывы</button>
+    </div>
+
+    <div class="admin-scroll" style="flex:1; overflow-y:auto; padding: 0 20px 20px;">
+
+      <!-- Статистика -->
+      <div class="admin-panel-tab" id="admin-tab-stats">
+        <div class="stats-grid" id="admin-stats-container">
+          <div class="shimmer" style="height:100px; border-radius:12px;"></div>
+        </div>
+        <div class="admin-chart-container" style="margin-top: 20px; background: var(--bg-card); border-radius: 16px; padding: 16px; border: 1px solid var(--glass-border);">
+          <canvas id="adminRevenueChart"></canvas>
+        </div>
+        <div style="margin-top:20px;">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Системные логи</div>
+          <div id="admin-logs-list"></div>
+        </div>
+      </div>
+
+      <!-- Заказы -->
+      <div class="admin-panel-tab" id="admin-tab-orders" style="display:none;">
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+          <button class="admin-order-filter active" data-status="">Все</button>
+          <button class="admin-order-filter" data-status="new">🆕 Новые</button>
+          <button class="admin-order-filter" data-status="processing">⚙️ В работе</button>
+          <button class="admin-order-filter" data-status="done">✅ Готово</button>
+          <button class="admin-order-filter" data-status="cancelled">❌ Отмена</button>
+        </div>
+        <div id="admin-orders-list"></div>
+      </div>
+
+      <!-- Клиенты -->
+      <div class="admin-panel-tab" id="admin-tab-users" style="display:none;">
+        <div class="input-group" style="margin-bottom:12px;">
+          <input type="text" id="admin-user-search" placeholder="Поиск по имени, телефону..." style="font-size:13px;">
+        </div>
+        <div id="admin-users-list"></div>
+      </div>
+
+      <!-- Цены -->
+      <div class="admin-panel-tab" id="admin-tab-prices" style="display:none;">
+        <div id="admin-prices-list"></div>
+      </div>
+
+      <!-- Промокоды -->
+      <div class="admin-panel-tab" id="admin-tab-promo" style="display:none;">
+        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:14px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;">Создать промокод</div>
+          <div class="input-group" style="margin-bottom:10px;">
+            <label>Код</label>
+            <input type="text" id="new-promo-code" placeholder="SUMMER2026" style="text-transform:uppercase;font-size:13px;">
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:10px;">
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>Скидка</label>
+              <input type="number" id="new-promo-discount" placeholder="1000">
+            </div>
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>Тип</label>
+              <select id="new-promo-type" style="background:var(--bg-primary);color:white;border:1px solid var(--glass-border);border-radius:10px;padding:12px;font-size:13px;">
+                <option value="fixed">Фикс. ₽</option>
+                <option value="percent">%</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>Макс. использований</label>
+              <input type="number" id="new-promo-uses" value="100">
+            </div>
+            <div class="input-group" style="flex:1;margin-bottom:0;">
+              <label>Истекает (дата)</label>
+              <input type="date" id="new-promo-expires" style="font-size:13px;">
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-create-promo" style="margin-top:12px;width:100%;font-size:13px;">Создать промокод</button>
+        </div>
+        <div id="admin-promo-list"></div>
+      </div>
+
+      <!-- Рассылка -->
+      <div class="admin-panel-tab" id="admin-tab-broadcast" style="display:none;">
+        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:14px;padding:16px;">
+          <div style="font-size:13px;font-weight:600;margin-bottom:12px;">📢 Broadcast в Telegram</div>
+          <div class="input-group" style="margin-bottom:12px;">
+            <label>Кому отправить</label>
+            <select id="broadcast-target" style="background:var(--bg-primary);color:white;border:1px solid var(--glass-border);border-radius:10px;padding:12px;font-size:13px;">
+              <option value="all">Все пользователи</option>
+              <option value="customers">Только с заказами</option>
+            </select>
+          </div>
+          <div class="input-group" style="margin-bottom:12px;">
+            <label>Сообщение (поддерживается HTML)</label>
+            <textarea id="broadcast-text" rows="5" placeholder="Введите текст сообщения..." style="background:var(--bg-primary);color:white;border:1px solid var(--glass-border);border-radius:10px;padding:12px;font-size:13px;resize:vertical;width:100%;box-sizing:border-box;"></textarea>
+          </div>
+          <button class="btn btn-accent" id="btn-send-broadcast" style="width:100%;font-size:13px;">📤 Отправить рассылку</button>
+          <div id="broadcast-result" style="margin-top:10px;font-size:12px;display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Отзывы -->
+      <div class="admin-panel-tab" id="admin-tab-reviews" style="display:none;">
+        <div id="admin-reviews-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════ PROFILE ══════════════ -->
+  <div class="screen profile-screen" id="screen-profile">
+    <div class="screen-header"><h2>Профиль</h2></div>
+
+    <!-- Full-screen Map -->
+    <div id="full-map-view" class="full-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:2000; background:var(--bg-primary);">
+      <div class="screen-header" style="padding: 15px; display: flex; align-items: center; gap: 15px;">
+        <button class="back-btn" id="btn-map-close" style="margin: 0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h2 style="font-size: 18px; margin: 0;">Выберите адрес</h2>
+      </div>
+      <div id="big-map" style="width:100%; height: calc(100% - 130px);"></div>
+      <div style="padding: 15px; display: flex; flex-direction: column; gap: 10px;">
+        <div id="map-selection-info" style="font-size: 14px; color: var(--text-secondary); min-height: 20px;">Нажмите на карту...</div>
+        <button class="btn btn-primary" id="btn-map-confirm">Подтвердить</button>
+        <button class="btn btn-secondary" id="btn-map-manual" style="background: transparent; border: 1px solid var(--glass-border); font-size: 12px; padding: 8px;">Ввести адрес самостоятельно</button>
+      </div>
+    </div>
+
+    <div class="profile-view-wrap" id="profile-main-view">
+      <div id="guest-banner" style="display:none; background:rgba(255,165,0,0.08); border:1px solid rgba(255,165,0,0.25); border-radius:14px; padding:16px; margin-bottom:20px; text-align:center;">
+        <div style="font-size:15px; font-weight:700; margin-bottom:6px;">👤 Вы вошли как гость</div>
+        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:14px;">Войдите через Telegram чтобы сохранять заказы и получать уведомления</div>
+        <button class="btn btn-primary" id="btn-link-telegram" style="padding:12px;">🔗 Привязать Telegram аккаунт</button>
+      </div>
+
+      <div class="profile-hero">
+        <div class="profile-avatar">
+          <span id="profile-initials">П</span>
+          <div class="profile-avatar-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+        </div>
+        <h3 class="profile-name">
+          <span id="profile-display-name">Загрузка...</span>
+          <span id="vip-badge" style="display:none; font-size: 12px; background: linear-gradient(135deg, #ffd700, #ffae00); color: #000; padding: 2px 8px; border-radius: 10px; margin-left: 8px; vertical-align: middle; box-shadow: 0 0 10px rgba(255,215,0,0.5);">💎 VIP</span>
+        </h3>
+        <p class="profile-email" id="profile-display-email">...</p>
+      </div>
+
+      <div class="profile-stats">
+        <div class="stat-card">
+          <div class="stat-num" id="profile-stat-orders">0</div>
+          <div class="stat-label">Заявок</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="profile-stat-bonus" style="color:var(--accent-gold);font-size:16px;">0</div>
+          <div class="stat-label">Бонусов ₽</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="profile-client-status" style="color:var(--accent-2);font-size:14px;">Базовый</div>
+          <div class="stat-label">Статус</div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:20px; margin-bottom:12px;">📋 История заказов</div>
+      <div id="order-history-list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">У вас пока нет заказов</div>
+      </div>
+
+      <div id="chat-engineer-btn-wrap" style="display:none; margin-bottom:20px;">
+        <button class="btn btn-accent" data-screen="support" style="gap:10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Чат с инженером
+        </button>
+      </div>
+
+      <!-- Реферальный хаб -->
+      <div class="referral-card" style="border-radius:20px; padding:20px; margin-bottom:24px; margin-top:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <div style="display:flex; flex-direction:column;">
+            <div style="font-size:15px; font-weight:700; color:var(--accent-gold); letter-spacing:0.5px;">РЕФЕРАЛЬНЫЙ ХАБ</div>
+            <div style="font-size:11px; color:var(--text-muted);">Зарабатывайте с каждого заказа друзей</div>
+          </div>
+          <div class="ref-stat-circle">
+            <div class="ref-stat-val" id="ref-bonus-display">0</div>
+            <div class="ref-stat-label">₽</div>
+          </div>
+        </div>
+        <div class="ref-code-box">
+          <div style="flex:1;">
+            <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px;">Ваш код</div>
+            <div style="font-family:monospace; font-size:14px; color:var(--text-primary); letter-spacing:2px; font-weight:700;" id="ref-code-display">GAZE-XXXX</div>
+          </div>
+          <button id="btn-copy-ref-code" style="background:var(--accent-dim); border:var(--border-thin); border-radius:10px; padding:8px 14px; color:var(--accent); font-size:11px; font-weight:700; cursor:pointer;">КОПИРОВАТЬ</button>
+        </div>
+        <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:20px;">Поделитесь ссылкой: друг получит <b style="color:var(--accent-gold);">скидку 5 000 ₽</b>, а вы — <b style="color:var(--accent-2);">1% от суммы заказа</b> на бонусный счет.</p>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" id="btn-share-ref-tg" style="padding:12px; font-size:13px; flex:1; background:var(--accent); color:#000;">✈️ Пригласить</button>
+          <button class="btn btn-secondary" id="btn-share-ref" style="padding:12px; font-size:13px; width:50px;">📤</button>
+        </div>
+        <div id="ref-invites-section" style="margin-top:20px; display:none;">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:12px; letter-spacing:1px;">Ваша сеть:</div>
+          <div id="ref-invites-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+      </div>
+
+      <!-- Настройки уведомлений -->
+      <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:16px;padding:16px;margin-bottom:24px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:12px;">🔔 Уведомления</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div>
+            <div style="font-size:13px;">Статус заказов</div>
+            <div style="font-size:11px;color:var(--text-muted);">Изменения по вашим заявкам</div>
+          </div>
+          <label class="toggle-switch" id="toggle-notify-orders">
+            <input type="checkbox" id="notify-orders-input" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:13px;">Акции и спецпредложения</div>
+            <div style="font-size:11px;color:var(--text-muted);">Скидки и новые услуги</div>
+          </div>
+          <label class="toggle-switch" id="toggle-notify-promos">
+            <input type="checkbox" id="notify-promos-input" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-bottom:12px;">Личные данные</div>
+      <div class="profile-menu">
+        <div class="profile-row" id="btn-edit-profile">
+          <div class="profile-row-content">
+            <span class="profile-row-label">ФИО</span>
+            <span class="profile-row-value" id="profile-row-name">—</span>
+          </div>
+          <div class="profile-row-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-row">
+          <div class="profile-row-content">
+            <span class="profile-row-label">Email</span>
+            <span class="profile-row-value" id="profile-row-email">—</span>
+          </div>
+        </div>
+        <div class="profile-row" id="btn-edit-profile-2">
+          <div class="profile-row-content">
+            <span class="profile-row-label">📱 Телефон (обязательно!)</span>
+            <span class="profile-row-value placeholder" id="profile-row-phone">Не указан — нажмите</span>
+          </div>
+          <div class="profile-row-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+        <div class="profile-row" id="btn-edit-profile-3">
+          <div class="profile-row-content">
+            <span class="profile-row-label">📍 Адрес объекта</span>
+            <span class="profile-row-value placeholder" id="profile-row-address">Не указан</span>
+          </div>
+          <div class="profile-row-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+      </div>
+
+      <button class="logout-btn" id="btn-logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Выйти из аккаунта
+      </button>
+    </div>
+
+    <div class="profile-view-wrap" id="profile-edit-view" style="display:none;">
+      <div class="edit-header">
+        <button class="back-btn" id="btn-edit-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h3 class="edit-title">Редактировать профиль</h3>
+      </div>
+      <div class="profile-edit-form" style="margin-top:20px;">
+        <div class="input-group">
+          <label>ФИО</label>
+          <input type="text" id="edit-name" autocomplete="name" placeholder="Иванов Иван Иванович">
+        </div>
+        <div class="input-group">
+          <label>📱 Телефон (обязателен для заявки)</label>
+          <input type="tel" id="edit-phone" placeholder="+7 (999) 000-00-00" autocomplete="tel">
+        </div>
+        <div class="input-group">
+          <label>📧 Email</label>
+          <input type="email" id="edit-email" placeholder="example@mail.ru" autocomplete="email">
+        </div>
+        <div class="input-group">
+          <label>📍 Адрес объекта</label>
+          <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <input type="text" id="edit-address" placeholder="Введите адрес вручную" style="flex:1;">
+            <button class="btn btn-secondary" id="btn-map-open" style="width:auto; padding:0 12px; font-size:18px;">📍</button>
+          </div>
+          <p style="font-size:11px; color:var(--text-muted);">Нажмите 📍 чтобы выбрать на карте</p>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-save-profile" style="margin-top:24px;">Сохранить</button>
+    </div>
+  </div>
+
+  <!-- ══════════════ GUIDE ══════════════ -->
+  <div class="screen guide-screen" id="screen-guide">
+    <div class="screen-header"><h2>Гайд по технологиям</h2></div>
+    <div class="faq-scroll" style="flex:1; overflow-y:auto; padding:20px;">
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">📷 Выбор камер</div>
+        <div class="guide-item animate-in stagger-1" onclick="this.classList.toggle('guide-item-active')">
+          <div class="guide-item-zoom">🔫</div>
+          <h4>Уличная (Bullet)</h4>
+          <p>Цилиндрический корпус. Видимый фактор защиты. Мощная ИК-подсветка. Идеальна для периметра.</p>
+        </div>
+        <div class="guide-item animate-in stagger-2" onclick="this.classList.toggle('guide-item-active')">
+          <div class="guide-item-zoom">⚪</div>
+          <h4>Купольная (Dome)</h4>
+          <p>Компактная и эстетичная. Широкий угол обзора. Подходит для офисов, квартир и подъездов.</p>
+        </div>
+        <div class="guide-item animate-in stagger-3" onclick="this.classList.toggle('guide-item-active')">
+          <div class="guide-item-zoom">🔍</div>
+          <h4>Разрешение</h4>
+          <p>2МП — базово. 4МП — стандарт четкости. 8МП (4K) — для тех, кто хочет видеть каждую деталь и номер авто.</p>
+        </div>
+      </div>
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">💾 Хранение</div>
+        <div class="faq-item"><h4>WD Purple vs обычный HDD</h4><p>Обычные диски не предназначены для непрерывной записи 24/7. WD Purple специально оптимизированы для трёх и более лет работы.</p></div>
+        <div class="faq-item"><h4>Расчёт объёма</h4><p>1 камера 4МП H.265+ ≈ 8-12 ГБ/сутки. На 4 камеры 14 дней = ~600 ГБ. Берите диск с запасом.</p></div>
+        <div class="faq-item"><h4>RAID-массивы</h4><p>Для критичных объектов рекомендуем RAID-1: два диска зеркалируют друг друга. Данные не теряются при отказе одного.</p></div>
+      </div>
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">🌐 Интернет и сеть</div>
+        <div class="faq-item"><h4>Кабельный интернет</h4><p>Оптимальный вариант. Стабильный канал. Рекомендуем выделенный роутер для системы видеонаблюдения.</p></div>
+        <div class="faq-item"><h4>4G-роутер как резерв</h4><p>При пропадании кабельного — автопереключение на 4G. Устанавливаем роутеры с поддержкой двух SIM-карт.</p></div>
+        <div class="faq-item"><h4>VPN и безопасность</h4><p>Для корпоративных объектов рекомендуем VPN-туннель — защищает от взлома извне.</p></div>
+      </div>
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">🔧 Монтаж</div>
+        <div class="faq-item"><h4>Кабель: витая пара vs коаксиал</h4><p>Используем только витую пару Cat5e/Cat6. PoE до 100 метров без усилителей.</p></div>
+        <div class="faq-item"><h4>Скрытый монтаж</h4><p>Прокладка в кабель-каналах или за гипсокартоном. Обсуждается при выезде инженера.</p></div>
+        <div class="faq-item"><h4>Гарантия на монтаж</h4><p>12 месяцев на все монтажные работы. Бесплатный выезд при обрыве или отказе соединений.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ FAQ ══════════════ -->
+  <div class="screen faq-screen" id="screen-faq">
+    <div class="screen-header"><h2>Частые вопросы</h2></div>
+    <div class="faq-scroll" style="flex:1; overflow-y:auto; padding:20px;">
+      <div class="faq-item"><h4>В чем разница между «Эконом» и «Премиум»?</h4><p>«Эконом» — базовые камеры 720p, стандартное ночное видение до 20м. «Премиум» — 4K (8МП), AI-аналитика, ИК до 60м и 30 дней архива.</p></div>
+      <div class="faq-item"><h4>Почему стоимость монтажа разная?</h4><p>В «Эконом» монтаж быстрее. В «Премиум» требуется юстировка камер, настройка AI-аналитики и работа с профессиональным оборудованием.</p></div>
+      <div class="faq-item"><h4>Какой комплект лучше выбрать?</h4><p>Квартира/небольшой офис — «Эконом». Дом/магазин — «Стандарт». Крупные объекты с детальным распознаванием — «Премиум».</p></div>
+      <div class="faq-item"><h4>Как долго хранится запись?</h4><p>«Эконом» — 7 дней, «Стандарт» — 14 дней, «Премиум» — до 30 дней. Используем специализированные диски для видеонаблюдения.</p></div>
+      <div class="faq-item"><h4>Можно ли смотреть запись удалённо с телефона?</h4><p>Да. Все наши системы поддерживают удалённый просмотр через приложение на iOS и Android. Нужен интернет на объекте.</p></div>
+      <div class="faq-item"><h4>Что входит в монтаж «под ключ»?</h4><p>Выезд инженера, прокладка кабелей, установка и настройка камер, NVR, подключение удалённого доступа и инструктаж.</p></div>
+      <div class="faq-item"><h4>Есть ли гарантия на оборудование?</h4><p>Гарантия на оборудование — 12–24 месяца в зависимости от производителя. Гарантия на монтажные работы — 12 месяцев.</p></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ CART ══════════════ -->
+  <div class="screen" id="screen-cart">
+    <div class="screen-header" style="display:flex;align-items:center;gap:12px;padding:20px 20px 0;">
+      <button class="back-btn" onclick="App.showScreen('calculator')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <h2>Спецификация</h2>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px;" id="cart-list">
+      <p style="color:var(--text-muted);text-align:center;margin-top:40px;">Корзина пуста</p>
+    </div>
+    <div style="padding:16px 20px;border-top:1px solid var(--glass-border);">
+      <div class="total-card" style="margin-bottom:12px;">
+        <div class="total-row total-final">
+          <span class="total-label">ИТОГО</span>
+          <span class="total-value" id="cart-total-price">0 ₽</span>
+        </div>
+      </div>
+      <button class="btn btn-accent" id="btn-cart-order">📩 Оформить заявку</button>
+    </div>
+  </div>
+
+  <!-- Scanning Overlay -->
+  <div id="scanning-overlay" style="display:none; position:fixed; inset:0; background:rgba(5,7,10,0.92); z-index:5000; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(14px);">
+    <div style="width:60px;height:60px;border:2px solid rgba(0,212,255,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:28px;"></div>
+    <div style="font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--text-primary);letter-spacing:0.5px;margin-bottom:20px;text-align:center;" id="scanning-text">Формируем спецификацию...</div>
+    <div style="width:220px;height:2px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+      <div id="scanning-progress" style="width:0%;height:100%;background:var(--accent);border-radius:2px;transition:width 0.4s ease;"></div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav" style="display:none;">
+    <div class="nav-glow"></div>
+    <button class="nav-item" data-screen="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Главная</span>
+    </button>
+    <button class="nav-item" data-screen="calculator">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+      <span>Расчёт</span>
+    </button>
+    <button class="nav-item" data-screen="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Профиль</span>
+    </button>
+    <button class="nav-item" data-screen="guide">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0-4-4H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a4 4 0 0 1 4-4h6z"/></svg>
+      <span>Гайд</span>
+    </button>
+    <button class="nav-item" data-screen="faq">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>FAQ</span>
+    </button>
+    <button class="nav-item" data-screen="support" id="nav-support" style="display:none;">
+      <div style="position:relative;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span id="chat-unread-dot" style="display:none;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--accent);"></span>
+      </div>
+      <span>Поддержка</span>
+    </button>
+    <button class="nav-item" data-screen="admin" id="nav-admin" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+      <span>Админ</span>
+    </button>
+  </nav>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="storage.js"></script>
+<script src="telegram.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
